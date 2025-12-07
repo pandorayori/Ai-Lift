@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
 
-// NOTE: In a real production app, never expose keys on client side.
-// This is for demonstration with the provided environment variable pattern.
-const apiKey = process.env.API_KEY || ''; 
+// CRITICAL FIX FOR BLACK SCREEN:
+// In Vite/Browser environments, 'process' is not defined. We must use 'import.meta.env'.
+// We also use a safe fallback to empty string to prevent crashing if env is missing.
+const apiKey = import.meta.env.VITE_API_KEY || ''; 
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateCoachingAdvice = async (
@@ -12,7 +13,7 @@ export const generateCoachingAdvice = async (
   profile: UserProfile
 ): Promise<string> => {
   if (!apiKey) {
-    return "API Key is missing. Please configure process.env.API_KEY to use the AI Coach.";
+    return "API Key is missing. Please add VITE_API_KEY to your Vercel Environment Variables.";
   }
 
   const model = "gemini-2.5-flash";

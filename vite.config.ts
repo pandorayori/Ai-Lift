@@ -7,5 +7,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true
+  },
+  define: {
+    // CRITICAL: Defines process.env as an empty object so the app doesn't crash 
+    // if any library tries to access 'process' in the browser.
+    'process.env': {}
   }
 });
