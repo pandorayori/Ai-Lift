@@ -1,9 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
 
-// NOTE: In a real production app, never expose keys on client side.
-// For this demo we use a Vite env variable.
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+// 从 Vite 环境变量读取 key
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateCoachingAdvice = async (
@@ -12,25 +11,34 @@ export const generateCoachingAdvice = async (
   profile: UserProfile
 ): Promise<string> => {
   if (!apiKey) {
-    return "API Key is missing. Please configure process.env.API_KEY to use the AI Coach.";
+    return "API Key is missing. Please configure VITE_GEMINI_API_KEY to use the AI Coach.";
   }
 
   const model = "gemini-2.5-flash";
-  const lang = profile.language || 'en';
-  
-  // Construct context from user data
+  const lang = profile.language || "en";
+
   const context = `
-    User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg, Age ${profile.age || 'Unknown'}, Gender ${profile.gender || 'Unknown'}.
+    User Profile: Height ${profile.height}cm, Weight ${
+    profile.weight
+  }kg, Age ${profile.age || "Unknown"}, Gender ${
+    profile.gender || "Unknown"
+  }.
     Recent Training History (Last 5 sessions):
-    ${recentLogs.slice(-5).map(log => 
-      `- Date: ${log.date.split('T')[0]}, Volume: ${log.total_volume.toFixed(0)}, Duration: ${log.duration_minutes}m`
-    ).join('\n')}
+    ${recentLogs
+      .slice(-5)
+      .map(
+        (log) =>
+          `- Date: ${log.date.split("T")[0]}, Volume: ${log.total_volume.toFixed(
+            0
+          )}, Duration: ${log.duration_minutes}m`
+      )
+      .join("\n")}
   `;
 
-  // Dynamic system instruction based on language
-  const languageInstruction = lang === 'zh' 
-    ? "You MUST reply in simplified Chinese (简体中文). Use professional but accessible fitness terminology suitable for a Chinese user." 
-    : "Reply in English.";
+  const languageInstruction =
+    lang === "zh"
+      ? "You MUST reply in simplified Chinese (简体中文). Use professional but accessible fitness terminology suitable for a Chinese user."
+      : "Reply in English.";
 
   const systemInstruction = `
     You are an expert Strength & Conditioning Coach named "AI-Lift Coach".
@@ -44,19 +52,19 @@ export const generateCoachingAdvice = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: model,
+      model,
       contents: `Context:\n${context}\n\nUser Query: ${query}`,
       config: {
-        systemInstruction: systemInstruction,
+        systemInstruction,
         temperature: 0.7,
-      }
+      },
     });
 
     return response.text || "I couldn't analyze that right now. Try again later.";
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return lang === 'zh' 
-      ? "抱歉，我现在无法连接到教练服务器，请稍后再试。" 
+    return lang === "zh"
+      ? "抱歉，我现在无法连接到教练服务器，请稍后再试。"
       : "Sorry, I'm having trouble connecting to the coaching server right now.";
   }
 };
