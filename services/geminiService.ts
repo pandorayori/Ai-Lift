@@ -2,8 +2,8 @@ import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
 
 // NOTE: In a real production app, never expose keys on client side.
-// This is for demonstration with the provided environment variable pattern.
-const apiKey = process.env.API_KEY || ''; 
+// For this demo we use a Vite env variable.
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 export const generateCoachingAdvice = async (
