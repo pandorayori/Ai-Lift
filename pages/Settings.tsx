@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database, LogOut } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 const Settings: React.FC = () => {
   const { profile, updateProfile, t, syncData, isSyncing } = useAppContext();
+  const { signOut, user } = useAuth();
   const [formData, setFormData] = useState(profile);
   const [isSaved, setIsSaved] = useState(false);
   const [hasSupabase, setHasSupabase] = useState(false);
@@ -44,6 +46,27 @@ const Settings: React.FC = () => {
         <SettingsIcon className="text-muted" />
         {t('settings', 'title')}
       </h1>
+
+      {/* Account Section */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+          <User size={16} />
+          Account
+        </h2>
+        <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div className="text-sm text-white font-medium">{user?.email}</div>
+            <div className="text-xs text-muted">Logged in securely</div>
+          </div>
+          <button 
+            onClick={() => signOut()}
+            className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+          >
+            <LogOut size={16} />
+            Sign Out
+          </button>
+        </div>
+      </section>
 
       {/* Cloud Sync Section */}
       <section className="mb-6">

@@ -3,13 +3,13 @@ import { supabase } from './supabase';
 
 // --- Constants & Seed Data ---
 
-const KEYS = {
+const LEGACY_KEYS = {
   PROFILE: 'ai_lift_profile',
   LOGS: 'ai_lift_logs',
   EXERCISES: 'ai_lift_exercises'
 };
 
-const USER_ID = 'default_user'; // For single-user mode with Anon key
+let currentUserId = 'default_user';
 
 const SEED_EXERCISES: Exercise[] = [
   {
@@ -74,6 +74,21 @@ const DEFAULT_PROFILE: UserProfile = {
 
 // --- Helper Functions ---
 
+const getKeys = () => {
+  // If default user, use legacy keys to preserve data for users before auth was added
+  // or simple fallback.
+  // Actually, to support migration:
+  // If we are logged in (UUID), we use `ai_lift_profile_${uuid}`
+  if (currentUserId === 'default_user') {
+    return LEGACY_KEYS;
+  }
+  return {
+    PROFILE: `ai_lift_profile_${currentUserId}`,
+    LOGS: `ai_lift_logs_${currentUserId}`,
+    EXERCISES: `ai_lift_exercises_${currentUserId}`
+  };
+};
+
 const getLocal = <T>(key: string, defaultVal: T): T => {
   const stored = localStorage.getItem(key);
   return stored ? JSON.parse(stored) : defaultVal;
@@ -86,17 +101,48 @@ const setLocal = (key: string, val: any) => {
 // --- Storage Service ---
 
 export const storage = {
-  getProfile: (): UserProfile => getLocal(KEYS.PROFILE, DEFAULT_PROFILE),
+  setStorageUser: (userId: string) => {
+    // If switching from default to a real user, we might want to migrate data locally first
+    const previousUser = currentUserId;
+    currentUserId = userId;
+
+    if (previousUser === 'default_user' && userId !== 'default_user') {
+      // Check if new user has data
+      const newKeys = getKeys();
+      const existingProfile = localStorage.getItem(newKeys.PROFILE);
+      
+      if (!existingProfile) {
+        // New user has no local data, migrate legacy data if exists
+        const legacyProfile = localStorage.getItem(LEGACY_KEYS.PROFILE);
+        const legacyLogs = localStorage.getItem(LEGACY_KEYS.LOGS);
+        
+        if (legacyProfile) {
+          console.log('Migrating legacy profile to user scope');
+          localStorage.setItem(newKeys.PROFILE, legacyProfile);
+        }
+        if (legacyLogs) {
+           console.log('Migrating legacy logs to user scope');
+           localStorage.setItem(newKeys.LOGS, legacyLogs);
+        }
+      }
+    }
+  },
+
+  getProfile: (): UserProfile => {
+    const keys = getKeys();
+    return getLocal(keys.PROFILE, DEFAULT_PROFILE);
+  },
   
   saveProfile: async (profile: UserProfile) => {
-    // 1. Save Local (Fast)
-    setLocal(KEYS.PROFILE, profile);
+    const keys = getKeys();
+    // 1. Save Local
+    setLocal(keys.PROFILE, profile);
 
-    // 2. Save Remote (Async)
-    if (supabase) {
+    // 2. Save Remote
+    if (supabase && currentUserId !== 'default_user') {
       try {
         await supabase.from('profiles').upsert({
-          id: USER_ID,
+          id: currentUserId,
           data: profile,
           updated_at: new Date().toISOString()
         });
@@ -107,23 +153,26 @@ export const storage = {
   },
 
   getExercises: (): Exercise[] => {
-    const custom = getLocal<Exercise[]>(KEYS.EXERCISES, []);
+    const keys = getKeys();
+    const custom = getLocal<Exercise[]>(keys.EXERCISES, []);
     return [...SEED_EXERCISES, ...custom];
   },
 
   saveCustomExercise: (exercise: Exercise) => {
-    const current = getLocal<Exercise[]>(KEYS.EXERCISES, []);
-    setLocal(KEYS.EXERCISES, [...current, exercise]);
-    // Note: We are currently not syncing custom exercises definitions to keep it simple,
-    // but they are stored in workout logs.
+    const keys = getKeys();
+    const current = getLocal<Exercise[]>(keys.EXERCISES, []);
+    setLocal(keys.EXERCISES, [...current, exercise]);
   },
 
-  getWorkoutLogs: (): WorkoutLog[] => getLocal(KEYS.LOGS, []),
+  getWorkoutLogs: (): WorkoutLog[] => {
+    const keys = getKeys();
+    return getLocal(keys.LOGS, []);
+  },
 
   saveWorkoutLog: async (log: WorkoutLog) => {
+    const keys = getKeys();
     // 1. Save Local
-    const current = getLocal<WorkoutLog[]>(KEYS.LOGS, []);
-    // Check if update or new
+    const current = getLocal<WorkoutLog[]>(keys.LOGS, []);
     const index = current.findIndex(l => l.id === log.id);
     let updatedLogs;
     if (index >= 0) {
@@ -132,15 +181,15 @@ export const storage = {
     } else {
       updatedLogs = [...current, log];
     }
-    setLocal(KEYS.LOGS, updatedLogs);
+    setLocal(keys.LOGS, updatedLogs);
 
     // 2. Save Remote
-    if (supabase) {
+    if (supabase && currentUserId !== 'default_user') {
       try {
         await supabase.from('workout_logs').upsert({
           id: log.id,
-          user_id: USER_ID,
-          date: new Date(log.date).toISOString(), // Ensure proper timestamp format for SQL
+          user_id: currentUserId,
+          date: new Date(log.date).toISOString(),
           data: log
         });
       } catch (e) {
@@ -149,69 +198,58 @@ export const storage = {
     }
   },
 
-  // --- Hybrid Sync Logic ---
   syncFromSupabase: async () => {
-    if (!supabase) return;
+    if (!supabase || currentUserId === 'default_user') return;
+
+    const keys = getKeys();
 
     try {
       // 1. Sync Profile
       const { data: remoteProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', USER_ID)
+        .eq('id', currentUserId)
         .single();
 
       if (remoteProfile) {
-        // Remote exists, update local
-        setLocal(KEYS.PROFILE, remoteProfile.data);
+        setLocal(keys.PROFILE, remoteProfile.data);
       } else if (!remoteProfile && !profileError) {
-        // Remote empty, push local (Initialization)
-        const localProfile = getLocal(KEYS.PROFILE, DEFAULT_PROFILE);
+        // Remote empty, push local (Initial Sync)
+        const localProfile = getLocal(keys.PROFILE, DEFAULT_PROFILE);
         await supabase.from('profiles').upsert({
-          id: USER_ID,
+          id: currentUserId,
           data: localProfile
         });
       }
 
       // 2. Sync Logs
-      const { data: remoteLogs, error: logsError } = await supabase
+      const { data: remoteLogs } = await supabase
         .from('workout_logs')
         .select('*')
+        .eq('user_id', currentUserId) // STRICTLY filter by user
         .order('date', { ascending: true });
 
-      const localLogs = getLocal<WorkoutLog[]>(KEYS.LOGS, []);
+      const localLogs = getLocal<WorkoutLog[]>(keys.LOGS, []);
 
       if (remoteLogs && remoteLogs.length > 0) {
-        // Merge strategy:
-        // We trust remote as the source of truth for existing IDs, 
-        // but we keep local-only logs (pending sync).
-        // For simplicity in this v1: We merge lists based on ID.
-        
         const mergedMap = new Map();
-        
-        // Add local first
         localLogs.forEach(l => mergedMap.set(l.id, l));
-        
-        // Overwrite/Add remote
         remoteLogs.forEach(r => {
            if (r.data) mergedMap.set(r.id, r.data);
         });
 
         const mergedList = Array.from(mergedMap.values());
-        // Sort by date
         mergedList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
-        setLocal(KEYS.LOGS, mergedList);
+        setLocal(keys.LOGS, mergedList);
         
       } else if ((!remoteLogs || remoteLogs.length === 0) && localLogs.length > 0) {
-        // --- INITIAL MIGRATION ---
-        // Remote is empty, but Local has data. 
-        // User just connected DB. Upload everything.
-        console.log("Performing initial migration to Supabase...");
+        // Initial Migration for this specific user
+        console.log(`Performing initial migration for user ${currentUserId}...`);
         
         const payload = localLogs.map(log => ({
           id: log.id,
-          user_id: USER_ID,
+          user_id: currentUserId,
           date: new Date(log.date).toISOString(),
           data: log
         }));

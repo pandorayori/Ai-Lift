@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { UserProfile, Language, WorkoutLog, Exercise } from '../types';
 import { storage } from '../services/storageService';
 import { translations } from '../utils/i18n';
+import { useAuth } from './AuthContext';
 
 interface AppContextType {
   profile: UserProfile;
@@ -19,23 +20,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  
+  // Initialize state. Note: storage.getProfile() might return default first, 
+  // but we refresh when user changes.
   const [profile, setProfileState] = useState<UserProfile>(storage.getProfile());
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Initial load and Sync
-  useEffect(() => {
-    const initData = async () => {
-      // 1. Load local data immediately for UI speed
-      refreshData();
-      
-      // 2. Try to sync from Supabase in background
-      await syncData();
-    };
-
-    initData();
-  }, []);
 
   const refreshData = useCallback(() => {
     setProfileState(storage.getProfile());
@@ -43,7 +35,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setExercises(storage.getExercises());
   }, []);
 
+  // Watch for user changes to update storage context
+  useEffect(() => {
+    if (user) {
+      storage.setStorageUser(user.id);
+    } else {
+      storage.setStorageUser('default_user');
+    }
+    
+    // Refresh local data immediately based on the new user context
+    refreshData();
+
+    // Trigger cloud sync if user is logged in
+    if (user) {
+      syncData();
+    }
+  }, [user, refreshData]);
+
   const syncData = useCallback(async () => {
+    if (!user) return;
     setIsSyncing(true);
     try {
       await storage.syncFromSupabase();
@@ -53,11 +63,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
       setIsSyncing(false);
     }
-  }, [refreshData]);
+  }, [user, refreshData]);
 
   const updateProfile = (updated: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updated };
-    storage.saveProfile(newProfile); // This now handles both LocalStorage and Supabase
+    storage.saveProfile(newProfile); 
     setProfileState(newProfile);
   };
 
