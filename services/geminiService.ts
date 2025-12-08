@@ -1,21 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
 
-// CRITICAL FIX FOR BLACK SCREEN:
-// In Vite/Browser environments, 'process' is not defined. We must use 'import.meta.env'.
-// We also use a safe fallback to empty string to prevent crashing if env is missing.
-const apiKey = import.meta.env.VITE_API_KEY || ''; 
-const ai = new GoogleGenAI({ apiKey });
+// CRITICAL: The API key must be obtained exclusively from process.env.API_KEY
+// as per strict coding guidelines.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateCoachingAdvice = async (
   query: string,
   recentLogs: WorkoutLog[],
   profile: UserProfile
 ): Promise<string> => {
-  if (!apiKey) {
-    return "API Key is missing. Please add VITE_API_KEY to your Vercel Environment Variables.";
-  }
-
+  // We assume process.env.API_KEY is available and valid.
+  
   const model = "gemini-2.5-flash";
   const lang = profile.language || 'en';
   

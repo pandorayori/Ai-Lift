@@ -1,17 +1,32 @@
-// App.tsx
-import React from "react";
+import React from 'react';
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import Navigation from './components/Navigation';
+import Dashboard from './pages/Dashboard';
+import ExerciseLibrary from './pages/ExerciseLibrary';
+import AICoach from './pages/AICoach';
+import WorkoutLogger from './pages/WorkoutLogger';
+import Settings from './pages/Settings';
+import { AppProvider } from './contexts/AppContext';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">AI-Lift 模板运行正常 ✅</h1>
-        <p className="text-sm text-gray-300">
-          如果你能看到这几行字，说明 Vercel 部署没问题，黑屏是 UI 代码的问题。
-        </p>
-      </div>
-    </div>
+    <AppProvider>
+      <HashRouter>
+        <div className="min-h-screen bg-background text-white font-sans selection:bg-primary selection:text-background">
+          <div className="mx-auto max-w-2xl min-h-screen relative shadow-2xl shadow-black">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/exercises" element={<ExerciseLibrary />} />
+              <Route path="/coach" element={<AICoach />} />
+              <Route path="/workout" element={<WorkoutLogger />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+            <Navigation />
+          </div>
+        </div>
+      </HashRouter>
+    </AppProvider>
   );
-}
+};
 
 export default App;
