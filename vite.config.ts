@@ -1,12 +1,12 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // 加载环境变量，第三个参数 '' 表示加载所有前缀的变量
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
   
-  // 优先读取 VITE_API_KEY，其次是 API_KEY，最后为空字符串
+  // Try to find the key in various common names
   const apiKey = env.VITE_API_KEY || env.API_KEY || '';
 
   return {
@@ -16,10 +16,13 @@ export default defineConfig(({ mode }) => {
       sourcemap: true
     },
     define: {
-      // 1. 定义 process.env.API_KEY 具体的值
-      'process.env.API_KEY': JSON.stringify(apiKey),
-      // 2. 关键：定义一个空的 process.env 对象，防止代码中直接访问 process.env 时报错 "process is not defined"
-      'process.env': JSON.stringify({ API_KEY: apiKey }) 
+      // Polyfill process.env for the browser
+      'process.env': JSON.stringify({
+        API_KEY: apiKey,
+        ...env
+      }),
+      // Explicitly define the key for direct access
+      'process.env.API_KEY': JSON.stringify(apiKey)
     }
   };
 });
