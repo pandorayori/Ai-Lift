@@ -1,10 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 
-// 获取环境变量
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Robustly get env variables (supports both standard Vite and configured process.env)
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  // @ts-ignore
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    // @ts-ignore
+    return process.env[key];
+  }
+  return '';
+};
 
-// 如果没有配置 Key，则返回 null，后续服务会降级处理
+const supabaseUrl = getEnv('VITE_SUPABASE_URL');
+const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY');
+
+// Log status for debugging (will show in browser console)
+if (!supabaseUrl || !supabaseKey) {
+  console.warn('Supabase credentials missing. Check your .env file.');
+} else {
+  console.log('Supabase client initialized.');
+}
+
 export const supabase = (supabaseUrl && supabaseKey)
   ? createClient(supabaseUrl, supabaseKey)
   : null;
