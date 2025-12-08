@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Zap, Scale, Calendar } from 'lucide-react';
+import { Activity, Zap, Scale, Calendar, RefreshCw } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 
 const StatCard = ({ title, value, unit, icon: Icon, colorClass }: any) => (
@@ -19,18 +19,19 @@ const StatCard = ({ title, value, unit, icon: Icon, colorClass }: any) => (
 );
 
 const Dashboard: React.FC = () => {
-  const { profile, t, logs } = useAppContext();
+  const { profile, t, logs, isSyncing } = useAppContext();
 
   const volumeData = useMemo(() => {
     // Reverse logs so the chart goes from left (old) to right (new)
     // Take up to last 10
-    return [...logs].reverse().slice(-10).map(log => ({
+    const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return sorted.slice(-10).map(log => ({
       date: new Date(log.date).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }),
       volume: Math.round(log.total_volume)
     }));
   }, [logs]);
 
-  const recentVolume = logs.length > 0 ? logs[0].total_volume : 0;
+  const recentVolume = logs.length > 0 ? logs[logs.length - 1].total_volume : 0;
   const totalWorkouts = logs.length;
 
   return (
@@ -38,7 +39,10 @@ const Dashboard: React.FC = () => {
       <header className="flex justify-between items-center mb-2">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('dashboard', 'greeting')}, {profile.name.split(' ')[0]}</h1>
-          <p className="text-muted text-sm">{t('dashboard', 'subtitle')}</p>
+          <p className="text-muted text-sm flex items-center gap-2">
+            {t('dashboard', 'subtitle')}
+            {isSyncing && <RefreshCw className="animate-spin text-primary" size={12} />}
+          </p>
         </div>
         <div className="w-10 h-10 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-full flex items-center justify-center text-white font-bold border border-zinc-600 shadow">
             {profile.name[0]}
@@ -104,7 +108,7 @@ const Dashboard: React.FC = () => {
            <p className="text-xs text-muted text-center py-4">No history yet.</p>
         ) : (
           <div className="space-y-3">
-             {logs.slice(0, 3).map(log => (
+             {logs.slice().reverse().slice(0, 3).map(log => (
                <div key={log.id} className="flex justify-between items-center text-sm border-b border-zinc-800 pb-2 last:border-0">
                  <div>
                    <div className="text-white font-medium">{log.name}</div>
