@@ -36,7 +36,8 @@ const Auth: React.FC = () => {
 
   return (
     // Modal Overlay: Covers the entire screen with a blurred background
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+    // Z-INDEX set to 999 to ensure it covers navigation and debug buttons
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
       
       <div className="w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden relative">
         

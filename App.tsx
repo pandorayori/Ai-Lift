@@ -9,7 +9,8 @@ import Settings from './pages/Settings';
 import Auth from './pages/Auth';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
+import { supabase } from './services/supabase';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -22,6 +23,11 @@ const AppContent: React.FC = () => {
       </div>
     );
   }
+
+  const handleForceLogout = async () => {
+    if (supabase) await supabase.auth.signOut();
+    window.location.reload();
+  };
 
   return (
     <div className="min-h-screen bg-background text-white font-sans selection:bg-primary selection:text-background overflow-hidden relative">
@@ -36,7 +42,7 @@ const AppContent: React.FC = () => {
           <Route path="/settings" element={<Settings />} />
         </Routes>
         
-        {/* Always show Navigation, but it might be covered by Auth overlay */}
+        {/* Always show Navigation */}
         <Navigation />
 
         {/* 
@@ -45,6 +51,22 @@ const AppContent: React.FC = () => {
         */}
         {!user && <Auth />}
         
+        {/* === DEBUG CONTROLS (If you see this, code is updated) === */}
+        <div className="fixed bottom-24 right-4 z-[9999] flex flex-col items-end gap-2">
+          <div className="bg-red-600 text-white text-[10px] px-2 py-1 rounded shadow-lg font-mono">
+            v3.0 DEBUG MODE
+          </div>
+          {user && (
+            <button 
+              onClick={handleForceLogout}
+              className="bg-red-600 text-white p-3 rounded-full shadow-xl border-2 border-white animate-pulse font-bold text-xs flex items-center gap-1"
+            >
+              <LogOut size={16} />
+              FORCE LOGOUT
+            </button>
+          )}
+        </div>
+
       </div>
     </div>
   );
