@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { storage } from '../services/storageService';
-import { Play, Plus, Search, Check, Trash2, Clock, Save, X, ChevronDown } from 'lucide-react';
+import { Play, Plus, Search, Check, Trash2, Clock, Save, X, Timer, RotateCcw } from 'lucide-react';
 import { Exercise, WorkoutLog, WorkoutExerciseLog, SetLog } from '../types';
 
 // --- Helper Components ---
@@ -26,7 +27,7 @@ const ExercisePicker = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col pt-10 pb-0 px-4">
+    <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex flex-col pt-10 pb-0 px-4 animate-in fade-in duration-200">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold text-white">Select Exercise</h2>
         <button onClick={onClose} className="p-2 bg-zinc-800 rounded-full"><X size={20} /></button>
@@ -47,7 +48,7 @@ const ExercisePicker = ({
           <div 
             key={ex.id} 
             onClick={() => { onSelect(ex); onClose(); setTerm(''); }}
-            className="bg-surface border border-border p-4 rounded-xl flex items-center gap-3 active:scale-95 transition-transform"
+            className="bg-surface border border-border p-4 rounded-xl flex items-center gap-3 active:scale-95 transition-transform cursor-pointer hover:border-zinc-600"
           >
             <img src={ex.image_url} className="w-10 h-10 rounded bg-zinc-800 object-cover" alt="" />
             <div>
@@ -76,39 +77,90 @@ interface ActiveExercise {
   sets: ActiveSet[];
 }
 
+type WorkoutStatus = 'idle' | 'planning' | 'active';
+
 const WorkoutLogger: React.FC = () => {
   const { t, language, profile, refreshData } = useAppContext();
   
-  // State
-  const [isActive, setIsActive] = useState(false);
+  // Workflow State
+  const [status, setStatus] = useState<WorkoutStatus>('idle');
+  
+  // Timer States
   const [startTime, setStartTime] = useState<number>(0);
-  const [elapsed, setElapsed] = useState(0);
+  const [elapsed, setElapsed] = useState(0); // Global Duration
+  
+  // Rest Timer State
+  const [restEndTime, setRestEndTime] = useState<number | null>(null);
+  const [restRemaining, setRestRemaining] = useState(0);
+
+  // Data State
   const [activeExercises, setActiveExercises] = useState<ActiveExercise[]>([]);
   const [showPicker, setShowPicker] = useState(false);
 
-  // Timer Effect
+  // --- Effects ---
+
+  // Global Timer (Only runs in 'active' mode)
   useEffect(() => {
     let interval: any;
-    if (isActive) {
+    if (status === 'active') {
+      // Correct way to track time regardless of render lag
+      if (startTime === 0) setStartTime(Date.now());
+      
       interval = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startTime) / 1000));
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, startTime]);
+  }, [status, startTime]);
 
-  // Format Time MM:SS
+  // Rest Timer (Runs whenever restEndTime is set)
+  useEffect(() => {
+    let interval: any;
+    if (restEndTime) {
+      interval = setInterval(() => {
+        const left = Math.ceil((restEndTime - Date.now()) / 1000);
+        if (left <= 0) {
+          setRestRemaining(0);
+          setRestEndTime(null);
+          // Optional: Play a sound here
+        } else {
+          setRestRemaining(left);
+        }
+      }, 200);
+    }
+    return () => clearInterval(interval);
+  }, [restEndTime]);
+
+  // --- Actions ---
+
   const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
     const s = sec % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleStart = () => {
-    setIsActive(true);
-    setStartTime(Date.now());
-    setElapsed(0);
+  const startPlanning = () => {
+    setStatus('planning');
     setActiveExercises([]);
+    setElapsed(0);
+    setStartTime(0);
+  };
+
+  const startActiveWorkout = () => {
+    setStatus('active');
+    setStartTime(Date.now());
+  };
+
+  const startRest = (seconds: number) => {
+    setRestEndTime(Date.now() + seconds * 1000);
+    setRestRemaining(seconds);
+  };
+
+  const cancelRest = () => {
+    setRestEndTime(null);
+    setRestRemaining(0);
   };
 
   const handleAddExercise = (ex: Exercise) => {
@@ -153,7 +205,7 @@ const WorkoutLogger: React.FC = () => {
 
   const handleFinish = async () => {
     if (activeExercises.length === 0) {
-      setIsActive(false);
+      setStatus('idle');
       return;
     }
 
@@ -163,7 +215,7 @@ const WorkoutLogger: React.FC = () => {
     let totalVol = 0;
     const exercisesLog: WorkoutExerciseLog[] = activeExercises.map(ae => {
       const setsLog: SetLog[] = ae.sets
-        .filter(s => s.completed) // Only save completed sets? Or all? Let's save all but mark completion
+        .filter(s => s.completed) 
         .map(s => {
           if (s.completed) totalVol += s.weight * s.reps;
           return {
@@ -184,21 +236,24 @@ const WorkoutLogger: React.FC = () => {
 
     const log: WorkoutLog = {
       id: crypto.randomUUID(),
-      user_id: profile.id, // This will be overwritten by storage service with actual auth ID usually
+      user_id: profile.id, 
       name: language === 'zh' ? '自由训练' : 'Freestyle Workout',
       date: new Date().toISOString(),
-      duration_minutes: Math.ceil(elapsed / 60),
+      duration_minutes: Math.max(1, Math.ceil(elapsed / 60)), // Ensure at least 1 min
       exercises: exercisesLog,
       total_volume: totalVol
     };
 
     await storage.saveWorkoutLog(log);
-    refreshData(); // Refresh context to show new log in Dashboard
-    setIsActive(false);
+    refreshData();
+    setStatus('idle');
+    setElapsed(0);
+    setStartTime(0);
+    setRestEndTime(null);
   };
 
-  // --- Render Idle State ---
-  if (!isActive) {
+  // --- Render: Idle State ---
+  if (status === 'idle') {
     return (
       <div className="p-4 pb-24 min-h-screen flex flex-col items-center justify-center text-center">
         <div className="bg-surface border border-border p-8 rounded-2xl max-w-sm w-full shadow-lg">
@@ -209,7 +264,7 @@ const WorkoutLogger: React.FC = () => {
           <p className="text-muted text-sm mb-8">{t('workout', 'startSubtitle')}</p>
           
           <button 
-            onClick={handleStart}
+            onClick={startPlanning}
             className="w-full py-4 bg-primary text-background font-bold text-lg rounded-xl hover:bg-opacity-90 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)]"
           >
             <Plus size={24} />
@@ -220,31 +275,63 @@ const WorkoutLogger: React.FC = () => {
     );
   }
 
-  // --- Render Active State ---
+  // --- Render: Planning & Active State ---
   return (
     <div className="pb-24 min-h-screen bg-background relative">
       <ExercisePicker isOpen={showPicker} onClose={() => setShowPicker(false)} onSelect={handleAddExercise} />
 
-      {/* Top Bar */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border p-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Clock className="text-primary" size={20} />
-          <span className="font-mono text-xl font-bold text-white tracking-widest">{formatTime(elapsed)}</span>
-        </div>
-        <button 
-          onClick={handleFinish}
-          className="bg-primary text-background px-4 py-1.5 rounded-full font-bold text-sm flex items-center gap-1 hover:bg-opacity-90"
-        >
-          <Save size={16} />
-          {t('workout', 'finish')}
-        </button>
+      {/* Top Bar: Different for Planning vs Active */}
+      <div className={`sticky top-0 z-40 backdrop-blur-md border-b border-border p-4 flex justify-between items-center transition-colors ${status === 'active' ? 'bg-zinc-900/80 border-primary/20' : 'bg-background/80'}`}>
+        
+        {status === 'planning' ? (
+          <div>
+            <h1 className="font-bold text-white text-lg">{t('workout', 'planTitle')}</h1>
+            <p className="text-xs text-muted">{t('workout', 'planSubtitle')}</p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${elapsed % 2 === 0 ? 'bg-red-500' : 'bg-transparent'} transition-colors`}></div>
+            <Clock className="text-primary" size={20} />
+            <span className="font-mono text-2xl font-bold text-white tracking-widest">{formatTime(elapsed)}</span>
+          </div>
+        )}
+
+        {status === 'planning' ? (
+          <button 
+            onClick={startActiveWorkout}
+            disabled={activeExercises.length === 0}
+            className="bg-primary text-background px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+          >
+            <Play size={16} fill="currentColor" />
+            {t('workout', 'startTimerBtn')}
+          </button>
+        ) : (
+          <button 
+            onClick={handleFinish}
+            className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-zinc-700"
+          >
+            <Save size={16} />
+            {t('workout', 'finish')}
+          </button>
+        )}
       </div>
+
+      {/* Rest Timer Overlay (Only in Active) */}
+      {status === 'active' && restRemaining > 0 && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 bg-black/80 backdrop-blur border border-primary/50 rounded-full px-5 py-2 flex items-center gap-3 shadow-2xl animate-in slide-in-from-top-4">
+           <Timer className="text-primary animate-pulse" size={20} />
+           <span className="font-mono text-xl font-bold text-white">{formatTime(restRemaining)}</span>
+           <button onClick={cancelRest} className="text-muted hover:text-white ml-2">
+             <X size={16} />
+           </button>
+        </div>
+      )}
 
       {/* Exercise List */}
       <div className="p-4 space-y-6">
         {activeExercises.length === 0 && (
-          <div className="text-center py-20 text-muted">
-            <p>Tap "+" to add an exercise</p>
+          <div className="text-center py-20 text-muted border-2 border-dashed border-zinc-800 rounded-2xl bg-surface/30">
+            <p>{t('workout', 'addExercise')}</p>
           </div>
         )}
 
@@ -252,7 +339,8 @@ const WorkoutLogger: React.FC = () => {
           <div key={ae.instanceId} className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
             {/* Exercise Header */}
             <div className="p-3 bg-zinc-800/50 border-b border-border flex justify-between items-center">
-               <h3 className="font-bold text-white">
+               <h3 className="font-bold text-white flex items-center gap-2">
+                 <div className="w-1 h-4 bg-secondary rounded-full"></div>
                  {language === 'zh' && ae.exerciseDef.name_zh ? ae.exerciseDef.name_zh : ae.exerciseDef.name}
                </h3>
                <button 
@@ -268,17 +356,17 @@ const WorkoutLogger: React.FC = () => {
             </div>
 
             {/* Sets Header */}
-            <div className="grid grid-cols-10 gap-2 px-3 py-2 text-[10px] text-muted font-bold uppercase tracking-wider text-center">
+            <div className="grid grid-cols-10 gap-2 px-3 py-2 text-[10px] text-muted font-bold uppercase tracking-wider text-center bg-zinc-900/30">
               <div className="col-span-1">#</div>
               <div className="col-span-3">{t('workout', 'kg')}</div>
               <div className="col-span-3">{t('workout', 'reps')}</div>
-              <div className="col-span-3">Done</div>
+              <div className="col-span-3">{status === 'active' ? 'Action' : t('workout', 'done')}</div>
             </div>
 
             {/* Sets Rows */}
-            <div className="px-3 pb-3 space-y-2">
+            <div className="px-3 pb-3 space-y-2 pt-2">
               {ae.sets.map((set, setIndex) => (
-                <div key={set.id} className={`grid grid-cols-10 gap-2 items-center transition-opacity ${set.completed ? 'opacity-50' : 'opacity-100'}`}>
+                <div key={set.id} className={`grid grid-cols-10 gap-2 items-center transition-all ${set.completed ? 'opacity-50 grayscale' : 'opacity-100'}`}>
                   <div className="col-span-1 text-center text-sm font-bold text-zinc-500">{setIndex + 1}</div>
                   
                   <div className="col-span-3">
@@ -286,7 +374,7 @@ const WorkoutLogger: React.FC = () => {
                       type="number" 
                       value={set.weight}
                       onChange={(e) => updateSet(exIndex, setIndex, 'weight', parseFloat(e.target.value))}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-1.5 text-center text-white font-mono focus:border-primary focus:outline-none"
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-2 text-center text-white font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                   
@@ -295,38 +383,74 @@ const WorkoutLogger: React.FC = () => {
                       type="number" 
                       value={set.reps}
                       onChange={(e) => updateSet(exIndex, setIndex, 'reps', parseFloat(e.target.value))}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-1.5 text-center text-white font-mono focus:border-primary focus:outline-none"
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-2 text-center text-white font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
                   
-                  <div className="col-span-3 flex justify-center">
-                    <button 
-                      onClick={() => updateSet(exIndex, setIndex, 'completed', !set.completed)}
-                      className={`w-full h-9 rounded-lg flex items-center justify-center transition-colors ${
-                        set.completed ? 'bg-primary text-background' : 'bg-zinc-800 text-zinc-600 hover:bg-zinc-700'
-                      }`}
-                    >
-                      <Check size={18} strokeWidth={3} />
-                    </button>
+                  <div className="col-span-3 flex justify-center gap-1">
+                    {status === 'active' ? (
+                       !set.completed ? (
+                          <button 
+                            onClick={() => {
+                              updateSet(exIndex, setIndex, 'completed', true);
+                              // Auto trigger a suggestion for rest?
+                            }}
+                            className="w-full h-9 rounded-lg bg-zinc-800 text-zinc-400 hover:bg-primary hover:text-background transition-colors flex items-center justify-center"
+                          >
+                            <Check size={18} />
+                          </button>
+                       ) : (
+                          <div className="flex gap-1 w-full">
+                            <button 
+                              onClick={() => updateSet(exIndex, setIndex, 'completed', false)}
+                              className="w-8 h-9 rounded-lg bg-green-900/30 text-green-500 flex items-center justify-center"
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                            <button 
+                              onClick={() => startRest(60)}
+                              className="flex-1 h-9 rounded-lg bg-zinc-800 text-xs text-white hover:bg-secondary hover:text-black transition-colors flex items-center justify-center font-medium"
+                            >
+                              60s
+                            </button>
+                          </div>
+                       )
+                    ) : (
+                      <div className="w-full h-9 rounded-lg bg-zinc-800/50 flex items-center justify-center">
+                        <span className="w-2 h-2 rounded-full bg-zinc-700"></span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
 
               <button 
                 onClick={() => addSet(exIndex)}
-                className="w-full py-2 mt-2 text-xs font-medium text-muted bg-zinc-800/30 rounded-lg hover:bg-zinc-800 hover:text-white transition-colors flex items-center justify-center gap-1"
+                className="w-full py-2 mt-2 text-xs font-medium text-muted bg-zinc-800/30 rounded-lg hover:bg-zinc-800 hover:text-white transition-colors flex items-center justify-center gap-1 border border-transparent hover:border-zinc-700"
               >
                 <Plus size={14} /> {t('workout', 'addSet')}
               </button>
             </div>
           </div>
         ))}
+        
+        {/* Delete/Reset Workout Button in Planning Mode */}
+        {status === 'planning' && activeExercises.length > 0 && (
+          <button 
+            onClick={() => {
+              if (confirm('Discard workout plan?')) setStatus('idle');
+            }}
+            className="w-full py-3 text-red-500 text-sm font-medium hover:bg-red-500/10 rounded-xl transition-colors"
+          >
+            {t('workout', 'discard')}
+          </button>
+        )}
       </div>
 
       {/* Floating Action Button */}
       <button 
         onClick={() => setShowPicker(true)}
-        className="fixed bottom-24 right-4 w-14 h-14 bg-primary text-background rounded-full shadow-lg shadow-primary/30 flex items-center justify-center z-40 active:scale-90 transition-transform"
+        className="fixed bottom-24 right-4 w-14 h-14 bg-primary text-background rounded-full shadow-lg shadow-primary/30 flex items-center justify-center z-40 active:scale-90 transition-transform hover:scale-105"
       >
         <Plus size={32} />
       </button>

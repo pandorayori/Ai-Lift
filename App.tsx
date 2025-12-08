@@ -7,6 +7,7 @@ import AICoach from './pages/AICoach';
 import WorkoutLogger from './pages/WorkoutLogger';
 import Settings from './pages/Settings';
 import Auth from './pages/Auth';
+import History from './pages/History'; // Import History
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
           <Route path="/coach" element={<AICoach />} />
           <Route path="/workout" element={<WorkoutLogger />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/history" element={<History />} /> {/* Add History Route */}
         </Routes>
         
         {/* Always show Navigation */}

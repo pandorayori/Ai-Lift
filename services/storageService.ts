@@ -198,6 +198,23 @@ export const storage = {
     }
   },
 
+  deleteWorkoutLog: async (logId: string) => {
+    const keys = getKeys();
+    // 1. Delete Local
+    const current = getLocal<WorkoutLog[]>(keys.LOGS, []);
+    const updatedLogs = current.filter(l => l.id !== logId);
+    setLocal(keys.LOGS, updatedLogs);
+
+    // 2. Delete Remote
+    if (supabase && currentUserId !== 'default_user') {
+      try {
+        await supabase.from('workout_logs').delete().eq('id', logId);
+      } catch (e) {
+        console.error("Supabase log delete error", e);
+      }
+    }
+  },
+
   syncFromSupabase: async () => {
     if (!supabase || currentUserId === 'default_user') return;
 
