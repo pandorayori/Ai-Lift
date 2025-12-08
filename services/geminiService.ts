@@ -1,7 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
-import { WorkoutLog, UserProfile, Language } from "../types";
+import { WorkoutLog, UserProfile } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// 移除顶层的初始化，防止 App 启动时因缺 Key 崩溃
+// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); 
 
 export const generateCoachingAdvice = async (
   query: string,
@@ -9,14 +10,20 @@ export const generateCoachingAdvice = async (
   profile: UserProfile
 ): Promise<string> => {
   
-  // Safety check
-  if (!process.env.API_KEY) {
+  // 1. 安全获取 Key (防止 process 未定义导致的崩溃)
+  // @ts-ignore
+  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+
+  // 2. 检查 Key 是否存在
+  if (!apiKey) {
     console.error("API Key is missing.");
     return profile.language === 'zh' 
-      ? "系统错误：未配置 API Key。" 
-      : "System Error: API Key is missing.";
+      ? "系统提示：未检测到 API Key。请在 Vercel 环境变量中添加 VITE_API_KEY。" 
+      : "System: API Key is missing. Please add VITE_API_KEY in Vercel settings.";
   }
 
+  // 3. 在需要的时候才初始化 AI，而不是 App 启动时
+  const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-2.5-flash";
   const lang = profile.language || 'en';
   
@@ -58,7 +65,7 @@ export const generateCoachingAdvice = async (
   } catch (error) {
     console.error("Gemini API Error:", error);
     return lang === 'zh' 
-      ? "抱歉，我现在无法连接到教练服务器，请稍后再试。" 
-      : "Sorry, I'm having trouble connecting to the coaching server right now.";
+      ? "抱歉，无法连接到 AI 服务器。请检查您的网络或 API Key 是否正确。" 
+      : "Sorry, connection to AI server failed. Please check your network or API Key.";
   }
 };
