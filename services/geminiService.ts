@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile } from "../types";
 
-// 移除顶层的初始化，防止 App 启动时因缺 Key 崩溃
+// DO NOT Initialize here to prevent startup crash
 // const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); 
 
 export const generateCoachingAdvice = async (
@@ -10,24 +10,23 @@ export const generateCoachingAdvice = async (
   profile: UserProfile
 ): Promise<string> => {
   
-  // 1. 安全获取 Key (防止 process 未定义导致的崩溃)
-  // @ts-ignore
-  const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+  // 1. Robust API Key Retrieval
+  // The 'process' object is polyfilled by vite.config.ts and declared in types.ts
+  const apiKey = process?.env?.API_KEY || '';
 
-  // 2. 检查 Key 是否存在
+  // 2. Immediate fail-safe check
   if (!apiKey) {
-    console.error("API Key is missing.");
+    console.error("Critical: API Key is missing in environment variables.");
     return profile.language === 'zh' 
-      ? "系统提示：未检测到 API Key。请在 Vercel 环境变量中添加 VITE_API_KEY。" 
-      : "System: API Key is missing. Please add VITE_API_KEY in Vercel settings.";
+      ? "系统提示：API Key 未配置。请在 Vercel 环境变量中添加 VITE_API_KEY。" 
+      : "System: API Key missing. Please set VITE_API_KEY in Vercel settings.";
   }
 
-  // 3. 在需要的时候才初始化 AI，而不是 App 启动时
+  // 3. Initialize AI only when needed
   const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-2.5-flash";
   const lang = profile.language || 'en';
   
-  // Construct context from user data
   const context = `
     User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg, Age ${profile.age || 'Unknown'}, Gender ${profile.gender || 'Unknown'}.
     Recent Training History (Last 5 sessions):
@@ -36,7 +35,6 @@ export const generateCoachingAdvice = async (
     ).join('\n')}
   `;
 
-  // Dynamic system instruction based on language
   const languageInstruction = lang === 'zh' 
     ? "You MUST reply in simplified Chinese (简体中文). Use professional but accessible fitness terminology suitable for a Chinese user." 
     : "Reply in English.";
