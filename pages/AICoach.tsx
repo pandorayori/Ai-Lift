@@ -12,7 +12,6 @@ const AICoach: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Initialize welcome message based on language
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([{ 
@@ -21,7 +20,7 @@ const AICoach: React.FC = () => {
         timestamp: Date.now() 
       }]);
     }
-  }, [profile.language]); // Re-trigger if language changes and chat is empty
+  }, [profile.language]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -37,10 +36,7 @@ const AICoach: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    // Get context
     const logs = storage.getWorkoutLogs();
-    
-    // Pass profile (which contains language pref) to service
     const responseText = await generateCoachingAdvice(userMsg.text, logs, profile);
     
     setMessages(prev => [...prev, { role: 'model', text: responseText, timestamp: Date.now() }]);
@@ -49,7 +45,6 @@ const AICoach: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] bg-background">
-      {/* Header */}
       <div className="p-4 border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-10 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-emerald-300 flex items-center justify-center text-background">
           <Bot size={24} />
@@ -63,7 +58,6 @@ const AICoach: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -90,7 +84,6 @@ const AICoach: React.FC = () => {
         )}
       </div>
 
-      {/* Input Area */}
       <div className="p-3 border-t border-border bg-surface">
         <div className="relative flex items-center gap-2">
           <input 

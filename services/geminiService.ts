@@ -1,75 +1,65 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile } from "../types";
 
-const apiKey =
-  import.meta.env.VITE_GEMINI_API_KEY ||
-  import.meta.env.VITE_API_KEY ||
-  "";
-
 export const generateCoachingAdvice = async (
   query: string,
   recentLogs: WorkoutLog[],
   profile: UserProfile
 ): Promise<string> => {
+  
+  // 1. Safe access to API Key (polyfilled by vite.config.ts)
+  const apiKey = process?.env?.API_KEY || '';
+
+  // 2. Return error message if key is missing (instead of crashing)
   if (!apiKey) {
-    // 没配置 key 的时候给个友好的提示
-    return profile.language === "zh"
-      ? "系统提示：未检测到 VITE_GEMINI_API_KEY，请在环境变量中配置。"
-      : "System: VITE_GEMINI_API_KEY is missing. Please set it in env.";
+    console.warn("API Key is missing.");
+    return profile.language === 'zh' 
+      ? "⚠️ 系统提示：未配置 API Key。请在 Vercel 环境变量中添加 VITE_API_KEY。" 
+      : "⚠️ System: API Key missing. Please set VITE_API_KEY in Vercel settings.";
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-2.5-flash";
-  const lang = profile.language || "en";
+  // 3. Initialize AI only when needed
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const model = "gemini-2.5-flash";
+    const lang = profile.language || 'en';
+    
+    const context = `
+      User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg, Age ${profile.age || 'Unknown'}, Gender ${profile.gender || 'Unknown'}.
+      Recent Training History (Last 5 sessions):
+      ${recentLogs.slice(-5).map(log => 
+        `- Date: ${log.date.split('T')[0]}, Volume: ${log.total_volume.toFixed(0)}, Duration: ${log.duration_minutes}m`
+      ).join('\n')}
+    `;
 
-  const context = `
-    User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg,
-    Age ${profile.age || "Unknown"}, Gender ${profile.gender || "Unknown"}.
-    Recent Training History (Last 5 sessions):
-    ${recentLogs
-      .slice(-5)
-      .map(
-        (log) =>
-          `- Date: ${log.date.split("T")[0]}, Volume: ${log.total_volume.toFixed(
-            0
-          )}, Duration: ${log.duration_minutes}m`
-      )
-      .join("\n")}
-  `;
-
-  const languageInstruction =
-    lang === "zh"
-      ? "You MUST reply in simplified Chinese (简体中文). Use professional but accessible fitness terminology suitable for a Chinese user."
+    const languageInstruction = lang === 'zh' 
+      ? "You MUST reply in simplified Chinese (简体中文). Use professional but accessible fitness terminology suitable for a Chinese user." 
       : "Reply in English.";
 
-  const systemInstruction = `
-    You are an expert Strength & Conditioning Coach named "AI-Lift Coach".
-    Your goal is to help the user increase strength (1RM) and muscle mass (Hypertrophy).
-    Keep your answers concise, motivating, and data-driven.
-    Analyze the provided context to give specific advice.
-    If the user asks about a plateau, look at their volume.
-    Style: Professional, concise, minimalist.
-    ${languageInstruction}
-  `;
+    const systemInstruction = `
+      You are an expert Strength & Conditioning Coach named "AI-Lift Coach".
+      Your goal is to help the user increase strength (1RM) and muscle mass (Hypertrophy).
+      Keep your answers concise, motivating, and data-driven.
+      Analyze the provided context to give specific advice.
+      Style: Professional, concise, minimalist.
+      ${languageInstruction}
+    `;
 
-  try {
     const response = await ai.models.generateContent({
-      model,
+      model: model,
       contents: `Context:\n${context}\n\nUser Query: ${query}`,
       config: {
-        systemInstruction,
+        systemInstruction: systemInstruction,
         temperature: 0.7,
-      },
+      }
     });
 
-    return (response as any).text || // genai SDK 这里类型有点松
-      (lang === "zh"
-        ? "抱歉，我现在无法分析你的训练数据，请稍后重试。"
-        : "Sorry, I couldn't analyze your training data. Please try again later.");
+    return response.text || (lang === 'zh' ? "AI 没有返回内容。" : "No response from AI.");
+
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return lang === "zh"
-      ? "抱歉，我现在无法连接到教练服务器，请稍后再试。"
-      : "Sorry, I'm having trouble connecting to the coaching server right now.";
+    return profile.language === 'zh' 
+      ? "抱歉，无法连接到 AI 服务器。请检查您的网络或 API Key。" 
+      : "Sorry, connection to AI server failed. Please check your network or API Key.";
   }
 };

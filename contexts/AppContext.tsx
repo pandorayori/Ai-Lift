@@ -16,7 +16,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [profile, setProfileState] = useState<UserProfile>(storage.getProfile());
 
-  // Reload profile if local storage changes (optional, but good for multi-tab)
   useEffect(() => {
     setProfileState(storage.getProfile());
   }, []);
@@ -31,7 +30,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateProfile({ language: lang });
   };
 
-  // Translation helper
   const t = (section: keyof typeof translations.en, key: string): string => {
     const langData = translations[profile.language][section];
     // @ts-ignore

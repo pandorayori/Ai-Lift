@@ -1,13 +1,3 @@
-// Add global type definition for process to avoid needing @types/node
-declare global {
-  var process: {
-    env: {
-      API_KEY?: string;
-      [key: string]: string | undefined;
-    }
-  };
-}
-
 export enum ExerciseType {
   BARBELL = 'Barbell',
   DUMBBELL = 'Dumbbell',
@@ -28,13 +18,13 @@ export enum MuscleGroup {
 export interface Exercise {
   id: string;
   name: string;
-  name_zh?: string; // Chinese name
+  name_zh?: string;
   target_muscle: MuscleGroup;
   type: ExerciseType;
   image_url: string;
   video_url?: string;
   instructions: string;
-  instructions_zh?: string; // Chinese instructions
+  instructions_zh?: string;
 }
 
 export interface SetLog {
@@ -55,8 +45,8 @@ export interface WorkoutExerciseLog {
 export interface WorkoutLog {
   id: string;
   user_id: string;
-  name: string; // e.g., "Pull Day"
-  date: string; // ISO String
+  name: string;
+  date: string;
   duration_minutes: number;
   exercises: WorkoutExerciseLog[];
   total_volume: number;
@@ -68,8 +58,8 @@ export type Gender = 'Male' | 'Female' | 'Other';
 export interface UserProfile {
   id: string;
   name: string;
-  weight: number; // kg
-  height: number; // cm
+  weight: number;
+  height: number;
   body_fat_percentage?: number;
   age?: number;
   gender?: Gender;

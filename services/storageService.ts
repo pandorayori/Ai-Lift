@@ -1,6 +1,5 @@
 import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog, WorkoutExerciseLog } from '../types';
 
-// Initial Mock Data
 const MOCK_EXERCISES: Exercise[] = [
   {
     id: 'ex_1',
@@ -30,7 +29,7 @@ const MOCK_EXERCISES: Exercise[] = [
     type: ExerciseType.BARBELL,
     image_url: 'https://picsum.photos/400/300?random=3',
     instructions: 'Hinge at hips, keep bar close to shins, pull until standing straight.',
-    instructions_zh: '髋部铰链运动，杠铃贴近小拉起，直至身体直立。'
+    instructions_zh: '髋部铰链运动，杠铃贴近小腿拉起，直至身体直立。'
   },
   {
     id: 'ex_4',
@@ -75,19 +74,14 @@ const MOCK_PROFILE: UserProfile = {
   language: 'en'
 };
 
-// Generate some history for charts
 const generateMockHistory = (): WorkoutLog[] => {
   const logs: WorkoutLog[] = [];
   const now = new Date();
-  
   for (let i = 0; i < 30; i++) {
     const date = new Date(now);
-    date.setDate(date.getDate() - (i * 2)); // Every other day
-    
-    // Simulate volume progression
+    date.setDate(date.getDate() - (i * 2));
     const baseVolume = 3000;
     const progression = 50 * (30 - i); 
-    
     logs.push({
       id: `log_${i}`,
       user_id: 'u_1',
@@ -95,7 +89,7 @@ const generateMockHistory = (): WorkoutLog[] => {
       date: date.toISOString(),
       duration_minutes: 60 + Math.floor(Math.random() * 15),
       total_volume: baseVolume + progression + Math.random() * 500,
-      exercises: [] // Simplified for list, detailed data would be here in real app
+      exercises: []
     });
   }
   return logs.reverse();
@@ -111,22 +105,26 @@ class StorageService {
   }
 
   private init() {
-    if (!localStorage.getItem(this.EXERCISE_KEY)) {
-      localStorage.setItem(this.EXERCISE_KEY, JSON.stringify(MOCK_EXERCISES));
-    }
-    if (!localStorage.getItem(this.LOGS_KEY)) {
-      localStorage.setItem(this.LOGS_KEY, JSON.stringify(generateMockHistory()));
-    }
-    if (!localStorage.getItem(this.PROFILE_KEY)) {
-      localStorage.setItem(this.PROFILE_KEY, JSON.stringify(MOCK_PROFILE));
+    if (typeof window !== 'undefined') {
+      if (!localStorage.getItem(this.EXERCISE_KEY)) {
+        localStorage.setItem(this.EXERCISE_KEY, JSON.stringify(MOCK_EXERCISES));
+      }
+      if (!localStorage.getItem(this.LOGS_KEY)) {
+        localStorage.setItem(this.LOGS_KEY, JSON.stringify(generateMockHistory()));
+      }
+      if (!localStorage.getItem(this.PROFILE_KEY)) {
+        localStorage.setItem(this.PROFILE_KEY, JSON.stringify(MOCK_PROFILE));
+      }
     }
   }
 
   getExercises(): Exercise[] {
+    if (typeof window === 'undefined') return MOCK_EXERCISES;
     return JSON.parse(localStorage.getItem(this.EXERCISE_KEY) || '[]');
   }
 
   getWorkoutLogs(): WorkoutLog[] {
+    if (typeof window === 'undefined') return [];
     return JSON.parse(localStorage.getItem(this.LOGS_KEY) || '[]');
   }
 
@@ -137,8 +135,8 @@ class StorageService {
   }
 
   getProfile(): UserProfile {
+    if (typeof window === 'undefined') return MOCK_PROFILE;
     const stored = localStorage.getItem(this.PROFILE_KEY);
-    // Merge with defaults to ensure new fields exist for existing users
     return stored ? { ...MOCK_PROFILE, ...JSON.parse(stored) } : MOCK_PROFILE;
   }
 
@@ -146,20 +144,7 @@ class StorageService {
     localStorage.setItem(this.PROFILE_KEY, JSON.stringify(profile));
   }
 
-  // Helper to get e1RM history for specific exercise
-  getOneRMHistory(exerciseId: string) {
-    // In a real app with SQL, this is a query. Here we mock it based on total volume trend for demo purposes
-    // since we didn't populate deep nested set data in the mock history generator for brevity.
-    const logs = this.getWorkoutLogs();
-    return logs.map(log => ({
-      date: log.date,
-      value: Math.floor((log.total_volume / 20) * (0.8 + Math.random() * 0.4)) // Simulated 1RM
-    }));
-  }
-  
-  // Get history of a specific exercise for the Logger to show "Last Time"
   getLastLogForExercise(exerciseId: string): WorkoutExerciseLog | null {
-      // Mock implementation: returns a static realistic previous set
       return {
           id: 'prev_1',
           exercise_id: exerciseId,

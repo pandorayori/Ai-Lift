@@ -25,7 +25,7 @@ export const translations = {
       type: "Type"
     },
     coach: {
-      title: "Coach Gemini",
+      title: "Gemini Coach",
       online: "Online",
       placeholder: "Ask about your progress, form, or routine...",
       thinking: "Thinking...",
@@ -132,5 +132,3 @@ export const translations = {
     }
   }
 };
-
-export type TranslationKey = keyof typeof translations.en;
