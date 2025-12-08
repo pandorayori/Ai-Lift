@@ -1,8 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
 
-// CRITICAL: The API key must be obtained exclusively from process.env.API_KEY
-// as per strict coding guidelines.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateCoachingAdvice = async (
@@ -10,8 +8,15 @@ export const generateCoachingAdvice = async (
   recentLogs: WorkoutLog[],
   profile: UserProfile
 ): Promise<string> => {
-  // We assume process.env.API_KEY is available and valid.
   
+  // Safety check
+  if (!process.env.API_KEY) {
+    console.error("API Key is missing.");
+    return profile.language === 'zh' 
+      ? "系统错误：未配置 API Key。" 
+      : "System Error: API Key is missing.";
+  }
+
   const model = "gemini-2.5-flash";
   const lang = profile.language || 'en';
   

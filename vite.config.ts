@@ -11,11 +11,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: true
     },
     define: {
-      // Allow process.env.API_KEY to be used in the client code
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      // CRITICAL: Defines process.env as an empty object so the app doesn't crash 
-      // if any library tries to access 'process' in the browser.
-      'process.env': {}
+      'process.env.API_KEY': JSON.stringify(env.API_KEY)
     }
   };
 });
