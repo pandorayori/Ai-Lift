@@ -1,3 +1,13 @@
+// Add global type definition for process to avoid needing @types/node
+declare global {
+  var process: {
+    env: {
+      API_KEY?: string;
+      [key: string]: string | undefined;
+    }
+  };
+}
+
 export enum ExerciseType {
   BARBELL = 'Barbell',
   DUMBBELL = 'Dumbbell',
