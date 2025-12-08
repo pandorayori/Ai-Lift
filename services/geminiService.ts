@@ -8,14 +8,15 @@ export const generateCoachingAdvice = async (
 ): Promise<string> => {
   
   // 1. Safe access to API Key (polyfilled by vite.config.ts)
+  // Using optional chaining and fallback
   const apiKey = process?.env?.API_KEY || '';
 
   // 2. Return error message if key is missing (instead of crashing)
   if (!apiKey) {
     console.warn("API Key is missing.");
     return profile.language === 'zh' 
-      ? "⚠️ 系统提示：未配置 API Key。请在 Vercel 环境变量中添加 VITE_API_KEY。" 
-      : "⚠️ System: API Key missing. Please set VITE_API_KEY in Vercel settings.";
+      ? "⚠️ 系统提示：未配置 API Key。请在 Vercel 设置 -> Environment Variables 中添加键名为 VITE_API_KEY 的变量。" 
+      : "⚠️ System: API Key missing. Please set VITE_API_KEY in Vercel settings -> Environment Variables.";
   }
 
   // 3. Initialize AI only when needed
@@ -59,7 +60,7 @@ export const generateCoachingAdvice = async (
   } catch (error) {
     console.error("Gemini API Error:", error);
     return profile.language === 'zh' 
-      ? "抱歉，无法连接到 AI 服务器。请检查您的网络或 API Key。" 
-      : "Sorry, connection to AI server failed. Please check your network or API Key.";
+      ? "抱歉，无法连接到 AI 服务器。请检查您的 API Key 是否正确配置为 VITE_API_KEY。" 
+      : "Sorry, connection to AI server failed. Please check if VITE_API_KEY is correct.";
   }
 };

@@ -1,3 +1,13 @@
+// Manually define process to avoid needing @types/node
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      API_KEY?: string;
+      [key: string]: string | undefined;
+    }
+  }
+}
+
 export enum ExerciseType {
   BARBELL = 'Barbell',
   DUMBBELL = 'Dumbbell',
