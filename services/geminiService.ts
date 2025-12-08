@@ -1,10 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
 
-// 只从 Vite 注入的环境变量里取 key（浏览器可以用）
-const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
-
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+// 移除顶层初始化，防止 App 启动时因 Key 读取时机问题导致崩溃
+// 我们将在 generateCoachingAdvice 函数内部动态初始化
 
 export const generateCoachingAdvice = async (
   query: string,
@@ -13,12 +11,19 @@ export const generateCoachingAdvice = async (
 ): Promise<string> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  if (!apiKey || !ai) {
+  // 使用您验证通过的 import.meta.env 方式获取 Key
+  const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
+
+  // 检查 Key 是否存在
+  if (!apiKey) {
+    console.error("Gemini API Key is missing.");
     return lang === "zh"
-      ? "后台没有配置 VITE_GEMINI_API_KEY，AI 教练暂时不可用，请联系开发者在 Vercel 环境变量中配置。"
-      : "AI coach is not configured (missing VITE_GEMINI_API_KEY in environment).";
+      ? "系统提示：未检测到 API Key。请确保在 Vercel 环境变量中配置了 VITE_API_KEY。"
+      : "System: API Key is missing. Please check VITE_API_KEY in Vercel settings.";
   }
 
+  // 动态初始化 AI (双保险：确保 Key 存在时才创建实例)
+  const ai = new GoogleGenAI({ apiKey });
   const model = "gemini-2.5-flash";
 
   const context = `
@@ -66,7 +71,7 @@ export const generateCoachingAdvice = async (
   } catch (error) {
     console.error("Gemini API Error:", error);
     return lang === "zh"
-      ? "抱歉，我现在无法连接到教练服务器，请稍后再试。"
-      : "Sorry, I'm having trouble connecting to the coaching server right now.";
+      ? "抱歉，无法连接到 AI 服务器。请检查 API Key 是否有效。"
+      : "Sorry, connection to AI server failed. Please check your API Key.";
   }
 };
