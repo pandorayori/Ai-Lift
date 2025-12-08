@@ -11,15 +11,15 @@ export const generateCoachingAdvice = async (
 ): Promise<string> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  // 使用您验证通过的 import.meta.env 方式获取 Key
-  const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
+  // Use process.env.API_KEY as per guidelines
+  const apiKey = process.env.API_KEY;
 
   // 检查 Key 是否存在
   if (!apiKey) {
     console.error("Gemini API Key is missing.");
     return lang === "zh"
-      ? "系统提示：未检测到 API Key。请确保在 Vercel 环境变量中配置了 VITE_API_KEY。"
-      : "System: API Key is missing. Please check VITE_API_KEY in Vercel settings.";
+      ? "系统提示：未检测到 API Key。请确保环境变量中配置了 API_KEY。"
+      : "System: API Key is missing. Please check API_KEY in settings.";
   }
 
   // 动态初始化 AI (双保险：确保 Key 存在时才创建实例)

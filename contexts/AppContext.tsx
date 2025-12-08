@@ -12,6 +12,8 @@ interface AppContextType {
   logs: WorkoutLog[];
   exercises: Exercise[];
   refreshData: () => void;
+  syncData: () => Promise<void>;
+  isSyncing: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -20,10 +22,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [profile, setProfileState] = useState<UserProfile>(storage.getProfile());
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Initial load
+  // Initial load and Sync
   useEffect(() => {
-    refreshData();
+    const initData = async () => {
+      // 1. Load local data immediately for UI speed
+      refreshData();
+      
+      // 2. Try to sync from Supabase in background
+      await syncData();
+    };
+
+    initData();
   }, []);
 
   const refreshData = useCallback(() => {
@@ -32,9 +43,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setExercises(storage.getExercises());
   }, []);
 
+  const syncData = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      await storage.syncFromSupabase();
+      refreshData();
+    } catch (error) {
+      console.error("Sync failed", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [refreshData]);
+
   const updateProfile = (updated: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updated };
-    storage.saveProfile(newProfile);
+    storage.saveProfile(newProfile); // This now handles both LocalStorage and Supabase
     setProfileState(newProfile);
   };
 
@@ -57,7 +80,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       t,
       logs,
       exercises,
-      refreshData
+      refreshData,
+      syncData,
+      isSyncing
     }}>
       {children}
     </AppContext.Provider>

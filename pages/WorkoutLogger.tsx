@@ -1,73 +1,26 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { UserProfile, Language, WorkoutLog, Exercise } from '../types';
-import { storage } from '../services/storageService';
-import { translations } from '../utils/i18n';
+import React from 'react';
+import { useAppContext } from '../contexts/AppContext';
+import { Play, Plus } from 'lucide-react';
 
-interface AppContextType {
-  profile: UserProfile;
-  updateProfile: (updated: Partial<UserProfile>) => void;
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: (section: keyof typeof translations.en, key: string) => string;
-  logs: WorkoutLog[];
-  exercises: Exercise[];
-  refreshData: () => void;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [profile, setProfileState] = useState<UserProfile>(storage.getProfile());
-  const [logs, setLogs] = useState<WorkoutLog[]>([]);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-
-  // Initial load
-  useEffect(() => {
-    refreshData();
-  }, []);
-
-  const refreshData = useCallback(() => {
-    setProfileState(storage.getProfile());
-    setLogs(storage.getWorkoutLogs());
-    setExercises(storage.getExercises());
-  }, []);
-
-  const updateProfile = (updated: Partial<UserProfile>) => {
-    const newProfile = { ...profile, ...updated };
-    storage.saveProfile(newProfile);
-    setProfileState(newProfile);
-  };
-
-  const setLanguage = (lang: Language) => {
-    updateProfile({ language: lang });
-  };
-
-  const t = (section: keyof typeof translations.en, key: string): string => {
-    const langData = translations[profile.language][section];
-    // @ts-ignore
-    return langData ? langData[key] || key : key;
-  };
+const WorkoutLogger: React.FC = () => {
+  const { t } = useAppContext();
 
   return (
-    <AppContext.Provider value={{ 
-      profile, 
-      updateProfile, 
-      language: profile.language, 
-      setLanguage, 
-      t,
-      logs,
-      exercises,
-      refreshData
-    }}>
-      {children}
-    </AppContext.Provider>
+    <div className="p-4 pb-24 min-h-screen flex flex-col items-center justify-center text-center">
+      <div className="bg-surface border border-border p-8 rounded-2xl max-w-sm w-full">
+        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+          <Play size={32} fill="currentColor" />
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('workout', 'startTitle')}</h1>
+        <p className="text-muted text-sm mb-6">{t('workout', 'startSubtitle')}</p>
+        
+        <button className="w-full py-3 bg-primary text-background font-bold rounded-xl hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2">
+          <Plus size={20} />
+          {t('workout', 'startBtn')}
+        </button>
+      </div>
+    </div>
   );
 };
 
-export const useAppContext = () => {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
-  return context;
-};
+export default WorkoutLogger;

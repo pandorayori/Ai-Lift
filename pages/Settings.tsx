@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { Save, User, Globe, CheckCircle2 } from 'lucide-react';
+import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 const Settings: React.FC = () => {
-  const { profile, updateProfile, t } = useAppContext();
+  const { profile, updateProfile, t, syncData, isSyncing } = useAppContext();
   const [formData, setFormData] = useState(profile);
   const [isSaved, setIsSaved] = useState(false);
+  const [hasSupabase, setHasSupabase] = useState(false);
 
-  // Sync local state when profile changes in context (e.g. language switch)
   useEffect(() => {
     setFormData(profile);
+    setHasSupabase(!!supabase);
   }, [profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -42,6 +44,38 @@ const Settings: React.FC = () => {
         <SettingsIcon className="text-muted" />
         {t('settings', 'title')}
       </h1>
+
+      {/* Cloud Sync Section */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Cloud size={16} />
+          Cloud Sync
+        </h2>
+        <div className="bg-surface border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+             <div className="flex items-center gap-2">
+               <div className={`w-2.5 h-2.5 rounded-full ${hasSupabase ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
+               <span className="text-sm text-white font-medium">
+                 {hasSupabase ? 'Supabase Connected' : 'Not Configured'}
+               </span>
+             </div>
+             {hasSupabase && (
+               <button 
+                onClick={syncData} 
+                disabled={isSyncing}
+                className="p-2 bg-zinc-800 rounded-full hover:bg-zinc-700 transition-colors disabled:opacity-50"
+               >
+                 <RefreshCw size={16} className={`${isSyncing ? 'animate-spin text-primary' : 'text-white'}`} />
+               </button>
+             )}
+          </div>
+          <p className="text-xs text-muted leading-relaxed">
+            {hasSupabase 
+              ? "Your data is automatically backed up to the cloud. Click the refresh button to force a sync manually." 
+              : "Connect your Supabase database to enable cloud backup and multi-device sync."}
+          </p>
+        </div>
+      </section>
 
       {/* Language Section */}
       <section className="mb-6">
@@ -187,7 +221,10 @@ const Settings: React.FC = () => {
       {/* Danger Zone Placeholder */}
       <section>
         <div className="p-4 border border-red-900/30 bg-red-900/10 rounded-xl">
-           <h3 className="text-red-500 text-sm font-bold mb-2">{t('settings', 'dangerZone')}</h3>
+           <h3 className="text-red-500 text-sm font-bold mb-2 flex items-center gap-2">
+             <Database size={14} />
+             {t('settings', 'dangerZone')}
+           </h3>
            <button className="text-xs text-red-400 hover:text-red-300 underline">
              {t('settings', 'resetData')}
            </button>
