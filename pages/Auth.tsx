@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Dumbbell, Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn } from 'lucide-react';
+import { Dumbbell, Mail, Lock, Loader2, ArrowRight, UserPlus, LogIn, User } from 'lucide-react';
 
-const Auth: React.FC = () => {
+interface AuthProps {
+  onGuestLogin: () => void;
+}
+
+const Auth: React.FC<AuthProps> = ({ onGuestLogin }) => {
   const { signIn, signUp } = useAuth();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -133,6 +137,17 @@ const Auth: React.FC = () => {
               )}
             </button>
           </form>
+
+          {/* Guest Mode Button */}
+          <div className="mt-6 pt-6 border-t border-zinc-800 text-center">
+            <button 
+              onClick={onGuestLogin}
+              className="text-xs text-muted hover:text-white transition-colors flex items-center justify-center gap-2 mx-auto"
+            >
+              <User size={14} />
+              Continue as Guest (Preview Mode)
+            </button>
+          </div>
         </div>
       </div>
     </div>
