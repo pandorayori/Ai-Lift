@@ -1,8 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
 import { WorkoutLog, UserProfile, Language } from "../types";
-
-// 移除顶层初始化，防止 App 启动时因 Key 读取时机问题导致崩溃
-// 我们将在 generateCoachingAdvice 函数内部动态初始化
 
 export const generateCoachingAdvice = async (
   query: string,
@@ -11,21 +7,8 @@ export const generateCoachingAdvice = async (
 ): Promise<string> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  // Use process.env.API_KEY as per guidelines
-  const apiKey = process.env.API_KEY;
-
-  // 检查 Key 是否存在
-  if (!apiKey) {
-    console.error("Gemini API Key is missing.");
-    return lang === "zh"
-      ? "系统提示：未检测到 API Key。请确保环境变量中配置了 API_KEY。"
-      : "System: API Key is missing. Please check API_KEY in settings.";
-  }
-
-  // 动态初始化 AI (双保险：确保 Key 存在时才创建实例)
-  const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-2.5-flash";
-
+  // 1. 构建上下文 (Context)
+  // 我们将数据处理留在前端，只将最终的文本 Prompt 发给后端
   const context = `
     User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg, Age ${profile.age || "Unknown"}, Gender ${profile.gender || "Unknown"}.
     Recent Training History (Last 5 sessions):
@@ -55,23 +38,34 @@ export const generateCoachingAdvice = async (
     ${languageInstruction}
   `;
 
+  const fullPrompt = `Context:\n${context}\n\nUser Query: ${query}`;
+
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: `Context:\n${context}\n\nUser Query: ${query}`,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-      },
+    // 2. 调用我们自己的后端 API (Vercel Function)
+    // 浏览器 -> /api/ai-coach -> Vercel Backend (持有 Key) -> Google Gemini
+    const res = await fetch('/api/ai-coach', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: fullPrompt,
+        systemInstruction: systemInstruction
+      }),
     });
 
-    return response.text || (lang === "zh"
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Server Error');
+    }
+
+    return data.text || (lang === "zh"
       ? "我现在无法给出建议，请稍后再试。"
       : "I couldn't analyze that right now. Please try again later.");
+
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("AI Coach API Error:", error);
     return lang === "zh"
-      ? "抱歉，无法连接到 AI 服务器。请检查 API Key 是否有效。"
-      : "Sorry, connection to AI server failed. Please check your API Key.";
+      ? "抱歉，AI 服务暂时不可用 (请检查 Vercel 环境变量 GEMINI_API_KEY)。"
+      : "Sorry, AI service is unavailable (Please check Vercel Env Var GEMINI_API_KEY).";
   }
 };
