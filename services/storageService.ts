@@ -11,56 +11,240 @@ const LEGACY_KEYS = {
 
 let currentUserId = 'default_user';
 
+// --- PROFESSIONAL EXERCISE LIBRARY SEED ---
+// Images are sourced from Unsplash. 
+// gif_url is reserved. To enable animation, replace the empty string with a valid URL.
 const SEED_EXERCISES: Exercise[] = [
+  // --- CHEST ---
   {
-    id: 'ex_1',
-    name: 'Barbell Squat',
-    name_zh: '杠铃深蹲',
-    target_muscle: MuscleGroup.LEGS,
-    type: ExerciseType.BARBELL,
-    image_url: 'https://images.unsplash.com/photo-1574680096141-1cddd32e01f5?auto=format&fit=crop&w=400&q=80',
-    instructions: 'Keep your back straight, feet shoulder-width apart. Lower until thighs are parallel to floor.',
-    instructions_zh: '保持背部挺直，双脚与肩同宽。下蹲至大腿与地面平行。'
-  },
-  {
-    id: 'ex_2',
-    name: 'Bench Press',
-    name_zh: '平板卧推',
+    id: 'chest_1',
+    name: 'Barbell Bench Press',
+    name_zh: '杠铃平板卧推',
     target_muscle: MuscleGroup.CHEST,
     type: ExerciseType.BARBELL,
-    image_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=400&q=80',
-    instructions: 'Lie on bench, lower bar to mid-chest, press up until arms are locked.',
-    instructions_zh: '平躺于卧推凳，下放杠铃至胸部中部，推起直至手臂伸直。'
+    image_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=600&q=80',
+    gif_url: '', 
+    instructions: 'Lie on bench, retract scapula. Lower bar to mid-chest with control, press up until arms extended.',
+    instructions_zh: '仰卧于卧推凳，肩胛骨后收。控制杠铃下放至胸部中部，发力推起直至手臂伸直。'
   },
   {
-    id: 'ex_3',
+    id: 'chest_2',
+    name: 'Incline Dumbbell Press',
+    name_zh: '上斜哑铃卧推',
+    target_muscle: MuscleGroup.CHEST,
+    type: ExerciseType.DUMBBELL,
+    image_url: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Set bench to 30-45 degrees. Press dumbbells overhead, focusing on upper chest.',
+    instructions_zh: '将凳面调整至30-45度。向上推举哑铃，集中意念感受上胸发力。'
+  },
+  {
+    id: 'chest_3',
+    name: 'Push-Up',
+    name_zh: '俯卧撑',
+    target_muscle: MuscleGroup.CHEST,
+    type: ExerciseType.BODYWEIGHT,
+    image_url: 'https://images.unsplash.com/photo-1598971639058-211a74a96ded?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Keep body in a straight line. Lower chest to floor, push back up.',
+    instructions_zh: '保持身体呈一条直线。屈肘下放胸部贴近地面，然后推起。'
+  },
+  {
+    id: 'chest_4',
+    name: 'Cable Fly',
+    name_zh: '绳索夹胸',
+    target_muscle: MuscleGroup.CHEST,
+    type: ExerciseType.CABLE,
+    image_url: 'https://images.unsplash.com/photo-1534367347848-9635e98544a8?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Stand with split stance. Bring handles together in a hugging motion.',
+    instructions_zh: '弓步站立。手臂微屈，做类似拥抱的动作将把手拉至胸前。'
+  },
+
+  // --- BACK ---
+  {
+    id: 'back_1',
     name: 'Deadlift',
-    name_zh: '硬拉',
+    name_zh: '传统硬拉',
     target_muscle: MuscleGroup.BACK,
     type: ExerciseType.BARBELL,
-    image_url: 'https://images.unsplash.com/photo-1517963879466-e1b54ebd6694?auto=format&fit=crop&w=400&q=80',
-    instructions: 'Hinge at hips, keep back flat, lift bar by extending hips and knees.',
-    instructions_zh: '髋部铰链运动，保持背部平直，通过伸展髋部和膝盖提起杠铃。'
+    image_url: 'https://images.unsplash.com/photo-1603287681836-e174ce5b7c4d?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Hinge at hips, flat back. Drive through heels to stand up straight.',
+    instructions_zh: '髋部折叠，背部挺直。脚跟发力站起，完全伸展髋部。'
   },
   {
-    id: 'ex_4',
-    name: 'Overhead Press',
-    name_zh: '站姿推举',
-    target_muscle: MuscleGroup.SHOULDERS,
-    type: ExerciseType.BARBELL,
-    image_url: 'https://images.unsplash.com/photo-1532029837066-805e451672a4?auto=format&fit=crop&w=400&q=80',
-    instructions: 'Press bar overhead from shoulder level until arms are fully extended.',
-    instructions_zh: '将杠铃从肩部位置推过头顶，直至手臂完全伸直。'
+    id: 'back_2',
+    name: 'Pull-Up',
+    name_zh: '引体向上',
+    target_muscle: MuscleGroup.BACK,
+    type: ExerciseType.BODYWEIGHT,
+    image_url: 'https://images.unsplash.com/photo-1598289431512-b97b0917affc?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Grip bar wider than shoulders. Pull chest to bar, squeezing lats.',
+    instructions_zh: '宽握单杠。将胸部拉向横杠，顶峰收缩背阔肌。'
   },
   {
-    id: 'ex_5',
-    name: 'Dumbbell Row',
-    name_zh: '哑铃划船',
+    id: 'back_3',
+    name: 'Seated Cable Row',
+    name_zh: '坐姿绳索划船',
+    target_muscle: MuscleGroup.BACK,
+    type: ExerciseType.CABLE,
+    image_url: 'https://images.unsplash.com/photo-1598289431512-b97b0917affc?auto=format&fit=crop&w=600&q=80', // Placeholder
+    gif_url: '',
+    instructions: 'Keep back straight, pull handle to abdomen, retract scapula.',
+    instructions_zh: '保持背部挺直，将把手拉至腹部，收缩肩胛骨。'
+  },
+  {
+    id: 'back_4',
+    name: 'Single Arm Dumbbell Row',
+    name_zh: '单臂哑铃划船',
     target_muscle: MuscleGroup.BACK,
     type: ExerciseType.DUMBBELL,
-    image_url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=400&q=80',
-    instructions: 'Pull dumbbell towards hip while keeping back parallel to ground.',
-    instructions_zh: '保持背部与地面平行，将哑铃拉向髋部。'
+    image_url: 'https://images.unsplash.com/photo-1507398941214-572c25f4b1dc?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Support on bench. Pull dumbbell to hip, keeping elbow close to body.',
+    instructions_zh: '支撑于凳面。将哑铃拉向髋部，手肘紧贴身体。'
+  },
+
+  // --- LEGS ---
+  {
+    id: 'legs_1',
+    name: 'Barbell Back Squat',
+    name_zh: '杠铃颈后深蹲',
+    target_muscle: MuscleGroup.LEGS,
+    type: ExerciseType.BARBELL,
+    image_url: 'https://images.unsplash.com/photo-1574680096141-1cddd32e01f5?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Feet shoulder-width. Break at hips and knees, squat deep, drive up.',
+    instructions_zh: '双脚与肩同宽。屈髋屈膝下蹲，蹲至大腿低于水平面，发力站起。'
+  },
+  {
+    id: 'legs_2',
+    name: 'Leg Press',
+    name_zh: '腿举倒蹬',
+    target_muscle: MuscleGroup.LEGS,
+    type: ExerciseType.MACHINE,
+    image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Place feet on platform. Lower weight until knees are 90 degrees, push back.',
+    instructions_zh: '双脚置于踏板。下放重量至膝盖呈90度，蹬起（膝盖不要锁死）。'
+  },
+  {
+    id: 'legs_3',
+    name: 'Romanian Deadlift',
+    name_zh: '罗马尼亚硬拉',
+    target_muscle: MuscleGroup.LEGS,
+    type: ExerciseType.BARBELL,
+    image_url: 'https://images.unsplash.com/photo-1567598508481-65985588e295?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Slight knee bend. Hinge at hips pushing butt back, feel stretch in hamstrings.',
+    instructions_zh: '膝盖微屈。屈髋向后推臀部，感受腘绳肌的拉伸感。'
+  },
+  {
+    id: 'legs_4',
+    name: 'Walking Lunge',
+    name_zh: '行走箭步蹲',
+    target_muscle: MuscleGroup.LEGS,
+    type: ExerciseType.BODYWEIGHT,
+    image_url: 'https://images.unsplash.com/photo-1434608519344-49d77a699ded?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Step forward, lower back knee to ground. Keep torso upright.',
+    instructions_zh: '向前跨步，下蹲至后膝贴近地面。保持躯干挺直。'
+  },
+
+  // --- SHOULDERS ---
+  {
+    id: 'shoulder_1',
+    name: 'Overhead Press',
+    name_zh: '杠铃站姿推举',
+    target_muscle: MuscleGroup.SHOULDERS,
+    type: ExerciseType.BARBELL,
+    image_url: 'https://images.unsplash.com/photo-1532029837066-805e451672a4?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Press bar vertically from collarbone to full extension overhead.',
+    instructions_zh: '将杠铃从锁骨位置垂直推过头顶至手臂伸直。'
+  },
+  {
+    id: 'shoulder_2',
+    name: 'Dumbbell Lateral Raise',
+    name_zh: '哑铃侧平举',
+    target_muscle: MuscleGroup.SHOULDERS,
+    type: ExerciseType.DUMBBELL,
+    image_url: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Raise dumbbells to sides until arms are parallel to floor. Lead with elbows.',
+    instructions_zh: '向身体两侧举起哑铃至手臂平行于地面。手肘引导发力。'
+  },
+  {
+    id: 'shoulder_3',
+    name: 'Face Pull',
+    name_zh: '面拉',
+    target_muscle: MuscleGroup.SHOULDERS,
+    type: ExerciseType.CABLE,
+    image_url: 'https://images.unsplash.com/photo-1581009137042-c552e485697a?auto=format&fit=crop&w=600&q=80', // generic gym
+    gif_url: '',
+    instructions: 'Pull rope to forehead, driving elbows back and externally rotating shoulders.',
+    instructions_zh: '将绳索拉向额头，手肘向后打开，做肩外旋动作。'
+  },
+
+  // --- ARMS ---
+  {
+    id: 'arms_1',
+    name: 'Barbell Curl',
+    name_zh: '杠铃弯举',
+    target_muscle: MuscleGroup.ARMS,
+    type: ExerciseType.BARBELL,
+    image_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Keep elbows at sides. Curl bar up towards chest, squeeze biceps.',
+    instructions_zh: '大臂紧贴身体两侧。向上弯举杠铃至胸前，收缩肱二头肌。'
+  },
+  {
+    id: 'arms_2',
+    name: 'Triceps Pushdown',
+    name_zh: '绳索下压',
+    target_muscle: MuscleGroup.ARMS,
+    type: ExerciseType.CABLE,
+    image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80', // generic gym
+    gif_url: '',
+    instructions: 'Keep elbows locked at sides. Push handle down until arms straight.',
+    instructions_zh: '大臂固定于身体两侧。向下压把手直至手臂完全伸直。'
+  },
+  {
+    id: 'arms_3',
+    name: 'Hammer Curl',
+    name_zh: '锤式弯举',
+    target_muscle: MuscleGroup.ARMS,
+    type: ExerciseType.DUMBBELL,
+    image_url: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=600&q=80', // generic
+    gif_url: '',
+    instructions: 'Neutral grip (palms facing each other). Curl dumbbells up.',
+    instructions_zh: '中立握法（掌心相对）。向上弯举哑铃。'
+  },
+
+  // --- CORE ---
+  {
+    id: 'core_1',
+    name: 'Plank',
+    name_zh: '平板支撑',
+    target_muscle: MuscleGroup.CORE,
+    type: ExerciseType.BODYWEIGHT,
+    image_url: 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Hold straight body position supported by forearms and toes.',
+    instructions_zh: '以前臂和脚尖支撑，保持身体呈一条直线静止。'
+  },
+  {
+    id: 'core_2',
+    name: 'Hanging Leg Raise',
+    name_zh: '悬垂举腿',
+    target_muscle: MuscleGroup.CORE,
+    type: ExerciseType.BODYWEIGHT,
+    image_url: 'https://images.unsplash.com/photo-1598289431512-b97b0917affc?auto=format&fit=crop&w=600&q=80',
+    gif_url: '',
+    instructions: 'Hang from bar. Lift legs until parallel to floor or higher.',
+    instructions_zh: '悬垂于横杠。向上举起双腿直至平行于地面或更高。'
   }
 ];
 

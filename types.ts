@@ -3,7 +3,8 @@ export enum ExerciseType {
   DUMBBELL = 'Dumbbell',
   MACHINE = 'Machine',
   BODYWEIGHT = 'Bodyweight',
-  CABLE = 'Cable'
+  CABLE = 'Cable',
+  KETTLEBELL = 'Kettlebell'
 }
 
 export enum MuscleGroup {
@@ -12,7 +13,8 @@ export enum MuscleGroup {
   LEGS = 'Legs',
   SHOULDERS = 'Shoulders',
   ARMS = 'Arms',
-  CORE = 'Core'
+  CORE = 'Core',
+  CARDIO = 'Cardio'
 }
 
 export interface Exercise {
@@ -22,6 +24,7 @@ export interface Exercise {
   target_muscle: MuscleGroup;
   type: ExerciseType;
   image_url: string;
+  gif_url?: string; // URL for the animation GIF
   video_url?: string;
   instructions: string;
   instructions_zh?: string;
