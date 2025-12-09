@@ -1,34 +1,36 @@
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight } from 'lucide-react';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight, TrendingUp } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { Link } from 'react-router-dom';
 
 const StatCard = ({ title, value, unit, icon: Icon, colorClass, to }: any) => {
   const CardContent = (
-    <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-zinc-600 transition-colors cursor-pointer h-full">
-      <div>
-        <p className="text-muted text-[10px] font-bold uppercase tracking-wider">{title}</p>
-        <div className="flex items-baseline mt-1">
-          <span className="text-2xl font-bold text-white">{value}</span>
-          {unit && <span className="text-xs text-gray-500 ml-1 font-medium">{unit}</span>}
-        </div>
+    <div className="glass-card rounded-2xl p-4 flex flex-col justify-between h-28 relative overflow-hidden group hover:border-white/10 transition-all">
+      <div className={`absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br ${colorClass.replace('text-', 'from-')}/20 to-transparent rounded-full blur-xl group-hover:blur-2xl transition-all duration-500`} />
+      
+      <div className="flex justify-between items-start z-10">
+        <Icon className={`${colorClass} drop-shadow-md`} size={20} />
+        {unit === 'kg' && <TrendingUp size={14} className="text-primary/50" />}
       </div>
-      <div className={`p-2.5 rounded-full bg-opacity-10 ${colorClass.replace('text-', 'bg-')}`}>
-        <Icon className={`${colorClass}`} size={18} />
+      
+      <div className="z-10">
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-bold font-mono text-white tracking-tight">{value}</span>
+          {unit && <span className="text-xs text-muted font-medium">{unit}</span>}
+        </div>
+        <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1 opacity-70">{title}</p>
       </div>
     </div>
   );
 
-  return to ? <Link to={to} className="block">{CardContent}</Link> : CardContent;
+  return to ? <Link to={to} className="block active:scale-95 transition-transform">{CardContent}</Link> : CardContent;
 };
 
 const Dashboard: React.FC = () => {
   const { profile, t, logs, isSyncing } = useAppContext();
 
   const volumeData = useMemo(() => {
-    // Reverse logs so the chart goes from left (old) to right (new)
-    // Take up to last 10
     const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return sorted.slice(-10).map(log => ({
       date: new Date(log.date).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }),
@@ -40,106 +42,97 @@ const Dashboard: React.FC = () => {
   const totalWorkouts = logs.length;
 
   return (
-    <div className="p-4 space-y-6 pb-24">
-      <header className="flex justify-between items-center mb-2">
+    <div className="p-5 pb-32 space-y-6">
+      
+      {/* Header */}
+      <header className="flex justify-between items-end mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">{t('dashboard', 'greeting')}, {profile.name.split(' ')[0]}</h1>
-          <p className="text-muted text-sm flex items-center gap-2">
-            {t('dashboard', 'subtitle')}
-            {isSyncing && <RefreshCw className="animate-spin text-primary" size={12} />}
+          <h1 className="text-3xl font-black text-white tracking-tighter italic">
+            AI-LIFT <span className="text-primary">OS</span>
+          </h1>
+          <p className="text-muted text-xs font-mono mt-1 flex items-center gap-2">
+            STATUS: <span className="text-primary">ONLINE</span>
+            {isSyncing && <RefreshCw className="animate-spin text-primary" size={10} />}
           </p>
         </div>
-        <div className="w-10 h-10 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-full flex items-center justify-center text-white font-bold border border-zinc-600 shadow">
+        <div className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-primary font-bold shadow-[0_0_15px_rgba(204,255,0,0.2)]">
             {profile.name[0]}
         </div>
       </header>
 
+      {/* Hero Card: AI Insight */}
+      <Link to="/coach" className="block relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary to-accent opacity-20 blur-xl rounded-3xl group-hover:opacity-30 transition-opacity" />
+        <div className="glass-panel rounded-3xl p-5 relative border border-white/10 overflow-hidden">
+          <div className="absolute top-0 right-0 p-3 opacity-20">
+            <Zap size={64} className="text-white" />
+          </div>
+          <div className="relative z-10">
+             <div className="flex items-center gap-2 mb-2">
+               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+               <span className="text-[10px] font-bold tracking-widest text-secondary uppercase">AI Coach Insight</span>
+             </div>
+             <h2 className="text-xl text-white font-medium leading-relaxed">
+               "Your volume is up <span className="text-primary font-bold">12%</span> this week. Legs recovery is optimal."
+             </h2>
+             <div className="mt-4 flex items-center gap-2 text-xs text-muted group-hover:text-white transition-colors">
+               Tap to chat <ChevronRight size={12} />
+             </div>
+          </div>
+        </div>
+      </Link>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Make Workouts card clickable to history */}
-        <StatCard title={t('dashboard', 'workouts')} value={totalWorkouts} unit="" icon={Calendar} colorClass="text-blue-500" to="/history" />
+        <StatCard title={t('dashboard', 'workouts')} value={totalWorkouts} unit="" icon={Calendar} colorClass="text-accent" to="/history" />
         <StatCard title={t('dashboard', 'lastVolume')} value={(recentVolume / 1000).toFixed(1)} unit="k" icon={Activity} colorClass="text-primary" />
-        <StatCard title={t('dashboard', 'weight')} value={profile.weight} unit="kg" icon={Scale} colorClass="text-secondary" to="/settings" />
-        <StatCard title={t('dashboard', 'est1rm')} value="--" unit="kg" icon={Zap} colorClass="text-purple-500" />
+        <StatCard title={t('dashboard', 'weight')} value={profile.weight} unit="kg" icon={Scale} colorClass="text-purple-400" to="/settings" />
+        <StatCard title={t('dashboard', 'est1rm')} value="--" unit="kg" icon={Zap} colorClass="text-pink-500" />
       </div>
 
-      {/* Volume Chart (Clickable) */}
-      <Link to="/history" className="block">
-        <div className="bg-surface border border-border rounded-xl p-4 shadow-sm hover:border-zinc-600 transition-colors">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white font-semibold flex items-center gap-2 text-sm">
+      {/* Volume Chart */}
+      <Link to="/history" className="block group">
+        <div className="glass-panel rounded-3xl p-5 border border-white/5 transition-colors hover:border-white/10">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-white font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
               <Activity size={16} className="text-primary" />
               {t('dashboard', 'volumeTrend')}
             </h2>
-            <ChevronRight size={16} className="text-muted" />
           </div>
-          <div className="h-48 w-full">
+          <div className="h-40 w-full">
             {logs.length > 1 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={volumeData}>
                   <defs>
                     <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#CCFF00" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#CCFF00" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <XAxis 
                     dataKey="date" 
-                    tick={{fontSize: 10, fill: '#71717a'}} 
+                    tick={{fontSize: 10, fill: '#52525B', fontFamily: 'JetBrains Mono'}} 
                     axisLine={false} 
                     tickLine={false}
                     interval="preserveStartEnd"
+                    dy={10}
                   />
-                  <YAxis hide />
                   <Tooltip 
-                    contentStyle={{backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px', fontSize: '12px'}}
-                    itemStyle={{color: '#fff'}}
-                    cursor={{stroke: '#3f3f46', strokeWidth: 1}}
+                    contentStyle={{backgroundColor: '#12161F', border: '1px solid #333', borderRadius: '8px', fontSize: '12px', fontFamily: 'JetBrains Mono'}}
+                    itemStyle={{color: '#CCFF00'}}
+                    cursor={{stroke: '#CCFF00', strokeWidth: 1, strokeDasharray: '4 4'}}
                   />
-                  <Area type="monotone" dataKey="volume" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorVol)" />
+                  <Area type="monotone" dataKey="volume" stroke="#CCFF00" strokeWidth={2} fillOpacity={1} fill="url(#colorVol)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-muted text-xs">
-                <Activity size={32} className="mb-2 opacity-20" />
-                {t('dashboard', 'workouts') === 'Workouts' ? 'Start your first workout to see data' : '开始第一次训练以查看数据'}
+              <div className="h-full flex flex-col items-center justify-center text-muted text-xs font-mono">
+                NO DATA AVAILABLE // START TRAINING
               </div>
             )}
           </div>
         </div>
       </Link>
-
-      {/* History List */}
-      <div className="bg-surface border border-border rounded-xl p-4">
-         <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white font-semibold flex items-center gap-2 text-sm">
-              <Calendar size={16} className="text-secondary" />
-              {t('dashboard', 'consistency')}
-            </h2>
-            <Link to="/history" className="text-xs text-primary hover:text-green-400 font-medium transition-colors">
-              {t('dashboard', 'viewAll')}
-            </Link>
-         </div>
-         
-        {logs.length === 0 ? (
-           <p className="text-xs text-muted text-center py-4">No history yet.</p>
-        ) : (
-          <div className="space-y-3">
-             {logs.slice().reverse().slice(0, 3).map(log => (
-               <Link to="/history" key={log.id} className="flex justify-between items-center text-sm border-b border-zinc-800 pb-2 last:border-0 hover:bg-zinc-800/50 p-2 -mx-2 rounded-lg transition-colors">
-                 <div>
-                   <div className="text-white font-medium">{log.name}</div>
-                   <div className="text-xs text-muted">{new Date(log.date).toLocaleDateString()}</div>
-                 </div>
-                 <div className="text-right">
-                    <div className="text-primary font-mono">{Math.round(log.total_volume)} kg</div>
-                    <div className="text-xs text-muted">{log.duration_minutes} min</div>
-                 </div>
-               </Link>
-             ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
