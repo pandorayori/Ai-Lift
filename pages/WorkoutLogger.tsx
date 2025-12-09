@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { storage } from '../services/storageService';
-import { Play, Plus, Search, Check, Trash2, Clock, Save, X, Timer, RotateCcw, ArrowDown, ChevronDown, Trophy } from 'lucide-react';
-import { Exercise, WorkoutLog, WorkoutExerciseLog, SetLog, SetType } from '../types';
+import { Play, Plus, Search, Check, Trash2, Clock, Save, X, Timer, RotateCcw, ArrowDown, ChevronDown, Trophy, CalendarCheck } from 'lucide-react';
+import { Exercise, WorkoutLog, WorkoutExerciseLog, SetLog, SetType, WorkoutPlan } from '../types';
 
 // Helper: Futuristic Exercise Picker
 const ExercisePicker = ({ isOpen, onClose, onSelect }: { isOpen: boolean; onClose: () => void; onSelect: (ex: Exercise) => void }) => {
@@ -60,7 +60,7 @@ interface ActiveExercise { instanceId: string; exerciseDef: Exercise; sets: Acti
 type WorkoutStatus = 'idle' | 'planning' | 'active';
 
 const WorkoutLogger: React.FC = () => {
-  const { t, language, profile, refreshData } = useAppContext();
+  const { t, language, profile, refreshData, exercises } = useAppContext();
   const [status, setStatus] = useState<WorkoutStatus>('idle');
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsed, setElapsed] = useState(0); 
@@ -70,14 +70,24 @@ const WorkoutLogger: React.FC = () => {
   const [showPicker, setShowPicker] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
 
+  // Active Plan Check
+  const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(null);
+
+  useEffect(() => {
+    setActivePlan(storage.getActivePlan());
+  }, []);
+
   // Timers Logic
   useEffect(() => {
     let interval: any;
     if (status === 'active') {
       if (startTime === 0) setStartTime(Date.now());
+      // Explicitly clean up interval on unmount or status change
       interval = setInterval(() => { setElapsed(Math.floor((Date.now() - startTime) / 1000)); }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [status, startTime]);
 
   useEffect(() => {
@@ -89,7 +99,9 @@ const WorkoutLogger: React.FC = () => {
         else { setRestRemaining(left); }
       }, 200);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [restEndTime]);
 
   // Formatters
@@ -117,11 +129,16 @@ const WorkoutLogger: React.FC = () => {
 
   const cancelRest = () => { setRestEndTime(null); setRestRemaining(0); };
 
-  const handleAddExercise = (ex: Exercise) => {
+  const handleAddExercise = (ex: Exercise, setsCount: number = 1, targetReps: number = 10) => {
+    const newSets: ActiveSet[] = [];
+    for (let i = 0; i < setsCount; i++) {
+      newSets.push({ id: crypto.randomUUID(), type: i === 0 ? 'warmup' : 'working', weight: 20, reps: targetReps, completed: false });
+    }
+
     setActiveExercises(prev => [...prev, {
       instanceId: crypto.randomUUID(), 
       exerciseDef: ex, 
-      sets: [{ id: crypto.randomUUID(), type: 'warmup', weight: 20, reps: 10, completed: false }]
+      sets: newSets
     }]);
   };
 
@@ -195,10 +212,18 @@ const WorkoutLogger: React.FC = () => {
     }));
 
     await storage.saveWorkoutLog({
-      id: crypto.randomUUID(), user_id: profile.id, name: 'Cyber Workout',
+      id: crypto.randomUUID(), user_id: profile.id, name: activePlan ? `${activePlan.name} (Day ${activePlan.current_day_index + 1})` : 'Cyber Workout',
       date: new Date().toISOString(), duration_minutes: Math.max(1, Math.ceil(elapsed / 60)),
       exercises: exercisesLog, total_volume: totalVol
     });
+
+    // Advance Plan Day if active
+    if (activePlan) {
+      const nextDay = (activePlan.current_day_index + 1) % activePlan.days_per_week;
+      const updatedPlan = { ...activePlan, current_day_index: nextDay };
+      storage.saveActivePlan(updatedPlan);
+      setActivePlan(updatedPlan);
+    }
     
     setShowFinishModal(true);
     refreshData();
@@ -210,6 +235,40 @@ const WorkoutLogger: React.FC = () => {
     setElapsed(0); 
     setStartTime(0); 
     setRestEndTime(null);
+    setActiveExercises([]);
+  };
+
+  // --- PLAN LOADING LOGIC (UPDATED FOR STRICT IDs) ---
+  const loadPlanDay = () => {
+    if (!activePlan) return;
+    const daySchedule = activePlan.schedule.find(d => d.day_number === activePlan.current_day_index + 1);
+    
+    if (daySchedule) {
+      setStatus('planning');
+      setActiveExercises([]); // Clear existing
+
+      daySchedule.exercises.forEach(plannedEx => {
+        // 1. Try Strict Match by ID
+        let match = exercises.find(ex => ex.id === plannedEx.exercise_id);
+
+        // 2. Fallback to Fuzzy Name Match (Legacy plans)
+        if (!match) {
+           match = exercises.find(ex => {
+            const matchName = language === 'zh' && ex.name_zh ? ex.name_zh : ex.name;
+            return matchName.toLowerCase().includes(plannedEx.name.toLowerCase()) || 
+                   plannedEx.name.toLowerCase().includes(matchName.toLowerCase());
+          });
+        }
+
+        // Use match or fallback to first exercise (Real app would show placeholder)
+        const exerciseToUse = match || exercises[0]; 
+        
+        // Parse Reps string "8-12" -> 10
+        const reps = parseInt(plannedEx.reps.split('-')[0]) || 10;
+        
+        handleAddExercise(exerciseToUse, plannedEx.sets, reps);
+      });
+    }
   };
 
   // --- IDLE VIEW ---
@@ -217,15 +276,35 @@ const WorkoutLogger: React.FC = () => {
     return (
       <div className="p-6 pb-24 min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent animate-pulse-slow"></div>
-        <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-primary/20 relative z-10 text-center">
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary shadow-[0_0_30px_rgba(204,255,0,0.2)]">
-            <Play size={40} fill="currentColor" />
+        
+        <div className="w-full max-w-sm z-10 space-y-4">
+          {/* Plan Card (If Active) */}
+          {activePlan && (
+            <div className="glass-panel p-5 rounded-3xl border border-secondary/30 relative overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+               <div className="flex items-center gap-2 mb-2">
+                 <CalendarCheck size={16} className="text-secondary" />
+                 <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">{t('workout', 'plannedSession')}</span>
+               </div>
+               <h2 className="text-lg font-bold text-white mb-1">Day {activePlan.current_day_index + 1}: {activePlan.schedule.find(d => d.day_number === activePlan.current_day_index + 1)?.focus || "Training"}</h2>
+               <button 
+                 onClick={loadPlanDay}
+                 className="mt-4 w-full py-3 bg-secondary text-white font-bold rounded-xl text-sm shadow-lg shadow-secondary/20 hover:bg-secondary/90 transition-all"
+               >
+                 {t('workout', 'loadPlan')} Day {activePlan.current_day_index + 1}
+               </button>
+            </div>
+          )}
+
+          <div className="glass-panel p-8 rounded-3xl border border-primary/20 text-center">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary shadow-[0_0_30px_rgba(204,255,0,0.2)]">
+              <Play size={40} fill="currentColor" />
+            </div>
+            <h1 className="text-3xl font-black text-white italic tracking-tighter mb-2">{t('workout', 'startTitle')}</h1>
+            <p className="text-muted text-xs font-mono mb-8">INITIATE_TRAINING_SEQUENCE_V2.0</p>
+            <button onClick={startPlanning} className="w-full py-4 bg-primary text-black font-black text-lg rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(204,255,0,0.4)] tracking-widest uppercase">
+              {t('workout', 'planTitle')}
+            </button>
           </div>
-          <h1 className="text-3xl font-black text-white italic tracking-tighter mb-2">{t('workout', 'startTitle')}</h1>
-          <p className="text-muted text-xs font-mono mb-8">INITIATE_TRAINING_SEQUENCE_V2.0</p>
-          <button onClick={startPlanning} className="w-full py-4 bg-primary text-black font-black text-lg rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(204,255,0,0.4)] tracking-widest uppercase">
-            {t('workout', 'planTitle')}
-          </button>
         </div>
       </div>
     );
@@ -234,7 +313,7 @@ const WorkoutLogger: React.FC = () => {
   // --- ACTIVE/PLANNING VIEW ---
   return (
     <div className="pb-32 min-h-screen relative">
-      <ExercisePicker isOpen={showPicker} onClose={() => setShowPicker(false)} onSelect={handleAddExercise} />
+      <ExercisePicker isOpen={showPicker} onClose={() => setShowPicker(false)} onSelect={(ex) => handleAddExercise(ex)} />
 
       {/* Header / Timer */}
       <div className={`sticky top-0 z-40 p-4 transition-all duration-500 ${status === 'active' ? 'bg-background/90 backdrop-blur-xl border-b border-primary/20' : 'bg-background/80 backdrop-blur-md'}`}>

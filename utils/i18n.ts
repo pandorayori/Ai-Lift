@@ -1,5 +1,4 @@
 
-
 export const translations = {
   en: {
     nav: {
@@ -19,7 +18,82 @@ export const translations = {
       volumeTrend: "Volume Trend",
       consistency: "Consistency",
       last3months: "Last 3 months",
-      viewAll: "View All >"
+      viewAll: "View All >",
+      planGenerator: "AI Plan Center",
+      generateBtn: "Generate New Plan",
+      activePlan: "Weekly Schedule",
+      day: "Day",
+      resumePlan: "Resume Plan",
+      generating: "AI is crafting your routine..."
+    },
+    plan: {
+      title: "System Designer",
+      config: "Configuration",
+      goal: "Training Goal",
+      level: "Experience Level",
+      split: "Split Architecture",
+      days: "Frequency (Days/Week)",
+      equipment: "Available Equipment",
+      injuries: "Injuries / Constraints",
+      hidden: "Advanced Parameters",
+      duration: "Session Length (min)",
+      spotter: "Has Spotter?",
+      confirmGenerate: "Generate System",
+      
+      // Goals
+      hypertrophy: "Hypertrophy (Muscle Gain)",
+      strength: "Max Strength (1RM)",
+      power: "Power / Explosiveness",
+      posture: "Posture Correction",
+      fat_loss: "Fat Loss / Cutting",
+      conditioning: "Metabolic Conditioning",
+      sport_specific: "Sport Specific (Athletic)",
+      rehab: "Rehab / Prehab Transition",
+
+      // Levels
+      novice: "True Novice",
+      novice_plus: "Novice Advanced",
+      intermediate: "Intermediate",
+      advanced: "Advanced",
+      elite: "Competitive / Elite",
+
+      // Splits
+      full_body: "Full Body",
+      upper_lower: "Upper / Lower",
+      ppl: "Push / Pull / Legs",
+      bro_split: "Bro Split (Body Part)",
+      ppl_6: "PPL (6 Day Volume)",
+      ul_hybrid: "UL Strength/Hypertrophy",
+      weak_point: "Weak Point Specialization",
+      powerlifting: "Powerlifting Specific",
+      ant_post: "Anterior / Posterior Chain",
+      torso_legs: "Torso / Limbs",
+      crossfit: "CrossFit Hybrid",
+      active_recovery: "Active Recovery Focus",
+
+      // Equipment
+      free_weights: "Free Weights (BB/DB)",
+      machines: "Machines (Plate/Pin)",
+      cables: "Cable Stack",
+      bodyweight: "Bodyweight Only",
+      bands: "Resistance Bands",
+      kettlebells: "Kettlebells",
+      squat_rack: "Squat Rack / Cage",
+      cardio_machine: "Cardio Machines",
+
+      // Constraints
+      shoulder: "Shoulder",
+      knee: "Knee",
+      back: "Lower Back",
+      elbow: "Elbow",
+      wrist: "Wrist",
+      ankle: "Ankle",
+      core: "Core/Hernia Risk",
+      special: "Special (No Jumps/Overhead)",
+
+      restDay: "Rest & Recovery",
+      viewDetails: "View Details",
+      startDay: "Start Day"
     },
     history: {
       title: "Workout History",
@@ -34,14 +108,18 @@ export const translations = {
       title: "Exercise Library",
       searchPlaceholder: "Search exercises...",
       muscle: "Muscle",
-      type: "Type"
+      type: "Type",
+      gym: "Gym / Commercial",
+      home: "Home / Dumbbell",
+      bodyweight: "Bodyweight / Calisthenics",
+      selectCategory: "Select a category from the sidebar"
     },
     coach: {
-      title: "Gemini Coach",
+      title: "Fit Coach Pro",
       online: "Online",
       placeholder: "Ask about your progress, form, or routine...",
       thinking: "Thinking...",
-      welcome: "Hi! I am your AI Strength Coach. How can I help you improve your training today?",
+      welcome: "I am your personal coach. I will tailor a training plan based on your physical condition, analyze your performance, optimize your form, and adjust your schedule.",
       thinkingProcess: "Thinking Process",
       modeLow: "Fast",
       modeHigh: "Deep"
@@ -49,7 +127,7 @@ export const translations = {
     workout: {
       startTitle: "Start Training",
       startSubtitle: "Build your routine first, then start the timer.",
-      planTitle: "Plan Workout",
+      planTitle: "Start Today's Workout",
       planSubtitle: "Add exercises and sets before starting.",
       startTimerBtn: "Start Workout Timer",
       finish: "Finish All",
@@ -69,7 +147,9 @@ export const translations = {
       batchSync: "Sync Down",
       finishModalTitle: "Mission Complete",
       finishModalBody: "Great session! Your data has been logged.",
-      close: "Close"
+      close: "Great",
+      loadPlan: "Load Plan: ",
+      plannedSession: "Planned Session Available"
     },
     settings: {
       title: "Settings",
@@ -98,6 +178,36 @@ export const translations = {
       confirmDeleteBody: "This will delete your account and all associated data permanently. You will be signed out immediately.",
       confirm: "Yes, Delete Everything",
       cancel: "Cancel"
+    },
+    categories: {
+      "Chest": "Chest",
+      "Back": "Back",
+      "Legs": "Legs",
+      "Shoulders": "Shoulders",
+      "Arms": "Arms",
+      "Core": "Core",
+      "Cardio": "Cardio",
+      "Upper Chest": "Upper Chest",
+      "Mid Chest": "Mid / Overall Chest",
+      "Lower Chest": "Lower Chest",
+      "Chest Fly Variations": "Chest Isolation (Flyes)",
+      "Vertical Pull": "Vertical Pull (Lats)",
+      "Horizontal Pull": "Horizontal Pull (Thickness)",
+      "Lower Back": "Lower Back / Erectors",
+      "Quads": "Quadriceps",
+      "Hamstrings": "Hamstrings",
+      "Glutes": "Glutes",
+      "Calves": "Calves",
+      "Front Delt": "Front Delts",
+      "Side Delt": "Side Delts",
+      "Rear Delt": "Rear Delts",
+      "Biceps": "Biceps",
+      "Triceps": "Triceps",
+      "Forearms": "Forearms",
+      "Upper Abs": "Upper Abs",
+      "Lower Abs": "Lower Abs",
+      "Obliques": "Obliques",
+      "HIIT": "HIIT / Cardio"
     }
   },
   zh: {
@@ -118,7 +228,82 @@ export const translations = {
       volumeTrend: "容量趋势",
       consistency: "训练频率",
       last3months: "最近3个月",
-      viewAll: "查看全部 >"
+      viewAll: "查看全部 >",
+      planGenerator: "AI 计划中心",
+      generateBtn: "配置训练系统",
+      activePlan: "本周计划日程",
+      day: "周 X",
+      resumePlan: "继续执行",
+      generating: "AI 正在构建专业周期计划..."
+    },
+    plan: {
+      title: "系统设计器",
+      config: "项目配置",
+      goal: "训练目标",
+      level: "经验等级",
+      split: "分化架构",
+      days: "每周频率 (天)",
+      equipment: "可用器材 (多选)",
+      injuries: "身体限制 / 伤病",
+      hidden: "高级参数",
+      duration: "单次时长 (分钟)",
+      spotter: "有训练搭档 (Spotter)?",
+      confirmGenerate: "生成训练系统",
+
+      // Goals
+      hypertrophy: "增肌 (肌肥大)",
+      strength: "绝对力量 (1RM)",
+      power: "爆发力 (Power)",
+      posture: "体态矫正",
+      fat_loss: "减脂 (代谢)",
+      conditioning: "体能储备",
+      sport_specific: "专项运动表现",
+      rehab: "康复过渡",
+
+      // Levels
+      novice: "完全新手",
+      novice_plus: "新手进阶",
+      intermediate: "中级训练者",
+      advanced: "中高级 / 精英",
+      elite: "竞赛级",
+
+      // Splits
+      full_body: "全身训练 (Full Body)",
+      upper_lower: "上下肢分化",
+      ppl: "推拉腿 (PPL)",
+      bro_split: "五分化 (Bro Split)",
+      ppl_6: "PPL (6天循环)",
+      ul_hybrid: "UL 力量/肥大混编",
+      weak_point: "弱项优先分化",
+      powerlifting: "力量举专项分化",
+      ant_post: "前后链分化",
+      torso_legs: "躯干/四肢分化",
+      crossfit: "混合体能 (CrossFit)",
+      active_recovery: "主动恢复式",
+
+      // Equipment
+      free_weights: "自由器械 (杠/哑铃)",
+      machines: "固定器械",
+      cables: "龙门架/绳索",
+      bodyweight: "徒手/自重",
+      bands: "弹力带",
+      kettlebells: "壶铃",
+      squat_rack: "深蹲架",
+      cardio_machine: "有氧器械",
+
+      // Constraints
+      shoulder: "肩部",
+      knee: "膝盖",
+      back: "腰背部",
+      elbow: "肘部",
+      wrist: "手腕",
+      ankle: "脚踝",
+      core: "核心/疝气风险",
+      special: "特殊限制 (高血压/孕期)",
+
+      restDay: "休息日",
+      viewDetails: "查看详情",
+      startDay: "开始今日训练"
     },
     history: {
       title: "训练历史",
@@ -133,14 +318,18 @@ export const translations = {
       title: "动作库",
       searchPlaceholder: "搜索动作...",
       muscle: "部位",
-      type: "类型"
+      type: "类型",
+      gym: "健身房 / 固定器械",
+      home: "居家 / 哑铃 / 小工具",
+      bodyweight: "自重 / 徒手训练",
+      selectCategory: "请在左侧选择分类"
     },
     coach: {
-      title: "Gemini 教练",
+      title: "Fit Coach Pro",
       online: "在线",
       placeholder: "询问关于进度、动作或计划的问题...",
       thinking: "思考中...",
-      welcome: "你好！我是你的 AI 力量教练。今天想针对训练聊点什么？",
+      welcome: "我是你的私人教练，根据你的基础身体情况为你量身打造训练计划，分析训练表现，优化动作，调整训练计划",
       thinkingProcess: "思考过程",
       modeLow: "快速",
       modeHigh: "深度"
@@ -148,7 +337,7 @@ export const translations = {
     workout: {
       startTitle: "开始训练",
       startSubtitle: "先规划训练内容，准备好后再开始计时。",
-      planTitle: "规划训练",
+      planTitle: "开始今日训练",
       planSubtitle: "添加动作和预设组数，然后开始。",
       startTimerBtn: "开始训练计时",
       finish: "完成所有训练",
@@ -168,7 +357,9 @@ export const translations = {
       batchSync: "批量同步",
       finishModalTitle: "训练完成！",
       finishModalBody: "干得漂亮！本次训练数据已成功保存。",
-      close: "太棒了"
+      close: "太棒了",
+      loadPlan: "载入今日计划：",
+      plannedSession: "计划训练日"
     },
     settings: {
       title: "设置",
@@ -197,6 +388,36 @@ export const translations = {
       confirmDeleteBody: "此操作将永久删除您的账号及所有关联数据，并立即使您退出登录。",
       confirm: "确认删除",
       cancel: "取消"
+    },
+    categories: {
+      "Chest": "胸部",
+      "Back": "背部",
+      "Legs": "腿部",
+      "Shoulders": "肩部",
+      "Arms": "手臂",
+      "Core": "核心",
+      "Cardio": "有氧/体能",
+      "Upper Chest": "上胸训练",
+      "Mid Chest": "中胸 / 整体",
+      "Lower Chest": "下胸训练",
+      "Chest Fly Variations": "胸部单关节 (夹胸)",
+      "Vertical Pull": "垂直拉力 (背阔肌)",
+      "Horizontal Pull": "水平拉力 (背厚度)",
+      "Lower Back": "下背 / 竖脊肌",
+      "Quads": "股四头肌 (大腿前侧)",
+      "Hamstrings": "腘绳肌",
+      "Glutes": "臀部训练",
+      "Calves": "小腿",
+      "Front Delt": "三角肌前束",
+      "Side Delt": "三角肌中束",
+      "Rear Delt": "三角肌后束",
+      "Biceps": "肱二头肌",
+      "Triceps": "肱三头肌",
+      "Forearms": "前臂 / 抓握",
+      "Upper Abs": "上腹部",
+      "Lower Abs": "下腹部",
+      "Obliques": "腹外斜肌 / 旋转",
+      "HIIT": "HIIT / 有氧"
     }
   }
 };
