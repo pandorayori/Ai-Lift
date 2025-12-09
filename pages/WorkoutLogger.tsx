@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { storage } from '../services/storageService';
-import { Play, Plus, Search, Check, Trash2, Clock, Save, X, Timer, RotateCcw } from 'lucide-react';
-import { Exercise, WorkoutLog, WorkoutExerciseLog, SetLog } from '../types';
+import { Play, Plus, Search, Check, Trash2, Clock, Save, X, Timer, RotateCcw, ArrowDown, ChevronDown, Trophy } from 'lucide-react';
+import { Exercise, WorkoutLog, WorkoutExerciseLog, SetLog, SetType } from '../types';
 
 // Helper: Futuristic Exercise Picker
 const ExercisePicker = ({ isOpen, onClose, onSelect }: { isOpen: boolean; onClose: () => void; onSelect: (ex: Exercise) => void }) => {
@@ -54,7 +55,7 @@ const ExercisePicker = ({ isOpen, onClose, onSelect }: { isOpen: boolean; onClos
 };
 
 // Types
-interface ActiveSet { id: string; weight: number; reps: number; completed: boolean; }
+interface ActiveSet { id: string; type: SetType; weight: number; reps: number; completed: boolean; }
 interface ActiveExercise { instanceId: string; exerciseDef: Exercise; sets: ActiveSet[]; }
 type WorkoutStatus = 'idle' | 'planning' | 'active';
 
@@ -67,8 +68,9 @@ const WorkoutLogger: React.FC = () => {
   const [restRemaining, setRestRemaining] = useState(0);
   const [activeExercises, setActiveExercises] = useState<ActiveExercise[]>([]);
   const [showPicker, setShowPicker] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
 
-  // Timers Logic (Same as before)
+  // Timers Logic
   useEffect(() => {
     let interval: any;
     if (status === 'active') {
@@ -100,31 +102,80 @@ const WorkoutLogger: React.FC = () => {
   // Actions
   const startPlanning = () => { setStatus('planning'); setActiveExercises([]); setElapsed(0); setStartTime(0); };
   const startActiveWorkout = () => { setStatus('active'); setStartTime(Date.now()); };
-  const startRest = (seconds: number) => { setRestEndTime(Date.now() + seconds * 1000); setRestRemaining(seconds); };
+  
+  const startRest = (seconds: number) => { 
+    setRestEndTime(Date.now() + seconds * 1000); 
+    setRestRemaining(seconds); 
+  };
+  
+  const adjustRest = (delta: number) => {
+    if (!restEndTime) return;
+    const newEnd = restEndTime + (delta * 1000);
+    setRestEndTime(newEnd);
+    setRestRemaining(prev => Math.max(0, prev + delta));
+  };
+
   const cancelRest = () => { setRestEndTime(null); setRestRemaining(0); };
 
   const handleAddExercise = (ex: Exercise) => {
     setActiveExercises(prev => [...prev, {
-      instanceId: crypto.randomUUID(), exerciseDef: ex, sets: [{ id: crypto.randomUUID(), weight: 20, reps: 10, completed: false }]
+      instanceId: crypto.randomUUID(), 
+      exerciseDef: ex, 
+      sets: [{ id: crypto.randomUUID(), type: 'warmup', weight: 20, reps: 10, completed: false }]
     }]);
   };
 
   const addSet = (exerciseIndex: number) => {
     const exercise = activeExercises[exerciseIndex];
     const prev = exercise.sets[exercise.sets.length - 1];
-    exercise.sets.push({ id: crypto.randomUUID(), weight: prev ? prev.weight : 20, reps: prev ? prev.reps : 10, completed: false });
+    exercise.sets.push({ 
+      id: crypto.randomUUID(), 
+      type: 'working', // Default to working for subsequent sets
+      weight: prev ? prev.weight : 20, 
+      reps: prev ? prev.reps : 10, 
+      completed: false 
+    });
     setActiveExercises([...activeExercises]);
   };
 
   const updateSet = (exIndex: number, setIndex: number, field: keyof ActiveSet, value: any) => {
+    const exercises = [...activeExercises];
+    const set = exercises[exIndex].sets[setIndex];
     // @ts-ignore
-    activeExercises[exIndex].sets[setIndex][field] = value;
-    setActiveExercises([...activeExercises]);
+    set[field] = value;
+    
+    // Auto-trigger rest logic
+    if (field === 'completed' && value === true && status === 'active') {
+       const restTime = set.type === 'warmup' ? 30 : 60;
+       startRest(restTime);
+    }
+
+    setActiveExercises(exercises);
+  };
+
+  const batchSync = (exIndex: number) => {
+    const exercises = [...activeExercises];
+    const firstSet = exercises[exIndex].sets[0];
+    if (!firstSet) return;
+    
+    exercises[exIndex].sets.forEach((set, idx) => {
+      if (idx > 0 && !set.completed) {
+        set.weight = firstSet.weight;
+        set.reps = firstSet.reps;
+      }
+    });
+    setActiveExercises(exercises);
+  };
+
+  const toggleSetType = (exIndex: number, setIndex: number) => {
+    const exercises = [...activeExercises];
+    const set = exercises[exIndex].sets[setIndex];
+    set.type = set.type === 'warmup' ? 'working' : 'warmup';
+    setActiveExercises(exercises);
   };
 
   const handleFinish = async () => {
     if (activeExercises.length === 0) { setStatus('idle'); return; }
-    if (!confirm(language === 'zh' ? "End Session?" : "End Session?")) return;
     
     let totalVol = 0;
     const exercisesLog: WorkoutExerciseLog[] = activeExercises.map(ae => ({
@@ -132,7 +183,14 @@ const WorkoutLogger: React.FC = () => {
       exercise_id: ae.exerciseDef.id,
       sets: ae.sets.filter(s => s.completed).map(s => {
         if (s.completed) totalVol += s.weight * s.reps;
-        return { id: s.id, weight: s.weight, reps: s.reps, completed: s.completed, timestamp: Date.now() };
+        return { 
+          id: s.id, 
+          type: s.type,
+          weight: s.weight, 
+          reps: s.reps, 
+          completed: s.completed, 
+          timestamp: Date.now() 
+        };
       })
     }));
 
@@ -141,24 +199,32 @@ const WorkoutLogger: React.FC = () => {
       date: new Date().toISOString(), duration_minutes: Math.max(1, Math.ceil(elapsed / 60)),
       exercises: exercisesLog, total_volume: totalVol
     });
-    refreshData(); setStatus('idle'); setElapsed(0); setStartTime(0); setRestEndTime(null);
+    
+    setShowFinishModal(true);
+    refreshData();
+  };
+
+  const closeFinishModal = () => {
+    setShowFinishModal(false);
+    setStatus('idle'); 
+    setElapsed(0); 
+    setStartTime(0); 
+    setRestEndTime(null);
   };
 
   // --- IDLE VIEW ---
   if (status === 'idle') {
     return (
       <div className="p-6 pb-24 min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Animated Background */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent animate-pulse-slow"></div>
-        
         <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-primary/20 relative z-10 text-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary shadow-[0_0_30px_rgba(204,255,0,0.2)]">
             <Play size={40} fill="currentColor" />
           </div>
-          <h1 className="text-3xl font-black text-white italic tracking-tighter mb-2">READY?</h1>
+          <h1 className="text-3xl font-black text-white italic tracking-tighter mb-2">{t('workout', 'startTitle')}</h1>
           <p className="text-muted text-xs font-mono mb-8">INITIATE_TRAINING_SEQUENCE_V2.0</p>
           <button onClick={startPlanning} className="w-full py-4 bg-primary text-black font-black text-lg rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(204,255,0,0.4)] tracking-widest uppercase">
-            Start Session
+            {t('workout', 'planTitle')}
           </button>
         </div>
       </div>
@@ -174,7 +240,7 @@ const WorkoutLogger: React.FC = () => {
       <div className={`sticky top-0 z-40 p-4 transition-all duration-500 ${status === 'active' ? 'bg-background/90 backdrop-blur-xl border-b border-primary/20' : 'bg-background/80 backdrop-blur-md'}`}>
         <div className="flex justify-between items-center">
           {status === 'planning' ? (
-             <div><h1 className="font-bold text-white uppercase tracking-wider">Planning Phase</h1><p className="text-[10px] text-muted font-mono">ADD_EXERCISES</p></div>
+             <div><h1 className="font-bold text-white uppercase tracking-wider">{t('workout', 'planTitle')}</h1><p className="text-[10px] text-muted font-mono">ADD_EXERCISES</p></div>
           ) : (
              <div className="flex flex-col">
                <span className="text-[10px] text-primary font-mono tracking-[0.2em] animate-pulse">SESSION_TIME</span>
@@ -188,21 +254,49 @@ const WorkoutLogger: React.FC = () => {
              </button>
           ) : (
              <button onClick={handleFinish} className="bg-surface border border-white/20 text-white px-4 py-2 rounded-lg font-mono text-xs hover:bg-white/10">
-               FINISH
+               {t('workout', 'finish')}
              </button>
           )}
         </div>
       </div>
 
-      {/* Rest Overlay */}
+      {/* Full Screen Rest Overlay */}
       {status === 'active' && restRemaining > 0 && (
-        <div className="fixed top-24 left-0 right-0 z-30 flex justify-center pointer-events-none">
-          <div className="bg-black/80 backdrop-blur-xl border border-primary/50 rounded-full px-6 py-2 flex items-center gap-4 shadow-[0_0_30px_rgba(204,255,0,0.2)] pointer-events-auto">
-             <span className="text-primary text-xs font-bold uppercase tracking-widest">Rest</span>
-             <span className="font-mono text-3xl font-bold text-white tabular-nums">{formatTime(restRemaining)}</span>
-             <button onClick={cancelRest} className="p-1 bg-white/10 rounded-full text-white hover:bg-white/20"><X size={14} /></button>
-          </div>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+           <div className="text-primary font-bold text-lg uppercase tracking-[0.2em] mb-8 animate-pulse">Resting</div>
+           
+           <div className="relative mb-12">
+             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full"></div>
+             <span className="relative font-mono text-9xl font-black text-white tabular-nums tracking-tighter drop-shadow-[0_0_15px_rgba(204,255,0,0.5)]">
+                {formatTime(restRemaining)}
+             </span>
+           </div>
+
+           <div className="flex gap-6 mb-12">
+              <button onClick={() => adjustRest(-10)} className="w-16 h-16 rounded-full border border-white/20 text-white font-bold hover:bg-white/10 transition-colors">-10</button>
+              <button onClick={() => adjustRest(10)} className="w-16 h-16 rounded-full border border-white/20 text-white font-bold hover:bg-white/10 transition-colors">+10</button>
+           </div>
+
+           <button onClick={cancelRest} className="px-8 py-3 bg-white/10 text-white rounded-full font-bold hover:bg-white/20 transition-all">
+             {t('workout', 'skip')}
+           </button>
         </div>
+      )}
+
+      {/* Completion Modal */}
+      {showFinishModal && (
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
+            <div className="bg-surface border border-primary/30 w-full max-w-sm rounded-3xl p-8 text-center shadow-[0_0_50px_rgba(204,255,0,0.2)]">
+               <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 text-primary border border-primary/50">
+                  <Trophy size={40} />
+               </div>
+               <h2 className="text-2xl font-black text-white italic mb-2">{t('workout', 'finishModalTitle')}</h2>
+               <p className="text-muted text-sm mb-8">{t('workout', 'finishModalBody')}</p>
+               <button onClick={closeFinishModal} className="w-full py-4 bg-primary text-black font-bold rounded-xl shadow-lg hover:scale-[1.02] transition-transform">
+                 {t('workout', 'close')}
+               </button>
+            </div>
+         </div>
       )}
 
       {/* List */}
@@ -216,18 +310,30 @@ const WorkoutLogger: React.FC = () => {
             </div>
 
             {/* Grid Header */}
-            <div className="grid grid-cols-10 gap-2 px-4 py-2 text-[10px] text-muted font-bold uppercase tracking-wider text-center">
-              <div className="col-span-1">#</div>
-              <div className="col-span-3">KG</div>
+            <div className="grid grid-cols-10 gap-2 px-4 py-2 text-[10px] text-muted font-bold uppercase tracking-wider text-center items-center">
+              <div className="col-span-1">Type</div>
+              <div className="col-span-3 flex items-center justify-center gap-1">
+                 KG 
+                 <button onClick={() => batchSync(exIndex)} className="text-primary hover:text-white" title={t('workout', 'batchSync')}><ArrowDown size={12} /></button>
+              </div>
               <div className="col-span-3">REPS</div>
-              <div className="col-span-3">STATUS</div>
+              <div className="col-span-3">CHECK</div>
             </div>
 
             {/* Sets */}
             <div className="px-4 pb-4 space-y-2">
               {ae.sets.map((set, setIndex) => (
                 <div key={set.id} className={`grid grid-cols-10 gap-2 items-center transition-all ${set.completed ? 'opacity-40' : ''}`}>
-                  <div className="col-span-1 text-center font-mono text-zinc-500 text-sm">{setIndex + 1}</div>
+                  {/* Type Toggle */}
+                  <div className="col-span-1 flex justify-center">
+                    <button 
+                      onClick={() => toggleSetType(exIndex, setIndex)}
+                      className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold border ${set.type === 'warmup' ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50' : 'bg-primary/20 text-primary border-primary/50'}`}
+                    >
+                      {set.type === 'warmup' ? t('workout', 'warmup') : t('workout', 'working')}
+                    </button>
+                  </div>
+                  
                   <div className="col-span-3">
                     <input type="number" value={set.weight} onChange={(e) => updateSet(exIndex, setIndex, 'weight', parseFloat(e.target.value))} className="w-full text-center py-2 rounded-lg text-white font-mono font-bold text-lg" />
                   </div>
@@ -241,10 +347,9 @@ const WorkoutLogger: React.FC = () => {
                             <Check size={20} className="group-hover:drop-shadow-[0_0_5px_rgba(204,255,0,1)]" />
                           </button>
                        ) : (
-                          <div className="flex gap-1 w-full">
-                            <button onClick={() => updateSet(exIndex, setIndex, 'completed', false)} className="w-10 h-10 rounded-lg bg-green-900/20 text-green-500 flex items-center justify-center"><RotateCcw size={16} /></button>
-                            <button onClick={() => startRest(60)} className="flex-1 h-10 rounded-lg bg-surface text-xs text-primary font-mono font-bold flex items-center justify-center border border-primary/20 hover:bg-primary/10">60s</button>
-                          </div>
+                          <button onClick={() => updateSet(exIndex, setIndex, 'completed', false)} className="w-full h-10 rounded-lg bg-green-900/20 text-green-500 border border-green-500/30 flex items-center justify-center">
+                             <RotateCcw size={16} />
+                          </button>
                        )
                     ) : (
                       <div className="w-full h-10 rounded-lg bg-white/5"></div>
@@ -253,7 +358,7 @@ const WorkoutLogger: React.FC = () => {
                 </div>
               ))}
               <button onClick={() => addSet(exIndex)} className="w-full py-3 mt-2 text-xs font-bold text-muted bg-black/20 rounded-lg hover:bg-black/40 hover:text-white transition-colors uppercase tracking-widest border border-dashed border-white/10 hover:border-white/20">
-                + Add Set
+                + {t('workout', 'addSet')}
               </button>
             </div>
           </div>

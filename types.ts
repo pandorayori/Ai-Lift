@@ -1,3 +1,4 @@
+
 export enum ExerciseType {
   BARBELL = 'Barbell',
   DUMBBELL = 'Dumbbell',
@@ -30,8 +31,11 @@ export interface Exercise {
   instructions_zh?: string;
 }
 
+export type SetType = 'warmup' | 'working';
+
 export interface SetLog {
   id: string;
+  type: SetType; // Added set type
   weight: number;
   reps: number;
   rpe?: number;
@@ -72,5 +76,8 @@ export interface UserProfile {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+  thought?: string; // Stores the AI's internal thinking process
   timestamp: number;
 }
+
+export type ThinkingLevel = 'low' | 'high';

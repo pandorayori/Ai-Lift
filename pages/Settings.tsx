@@ -1,15 +1,21 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database, LogOut } from 'lucide-react';
+import { storage } from '../services/storageService';
+import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database, LogOut, AlertTriangle, Trash2, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 const Settings: React.FC = () => {
-  const { profile, updateProfile, t, syncData, isSyncing } = useAppContext();
+  const { profile, updateProfile, t, syncData, isSyncing, refreshData } = useAppContext();
   const { signOut, user } = useAuth();
   const [formData, setFormData] = useState(profile);
   const [isSaved, setIsSaved] = useState(false);
   const [hasSupabase, setHasSupabase] = useState(false);
+
+  // Modal States
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     setFormData(profile);
@@ -40,8 +46,25 @@ const Settings: React.FC = () => {
     return '--';
   };
 
+  const handleResetData = async () => {
+    await storage.clearAllUserData();
+    refreshData();
+    setShowResetConfirm(false);
+    // Reload to ensure state is clean
+    window.location.reload();
+  };
+
+  const handleDeleteAccount = async () => {
+    // 1. Wipe data
+    await storage.clearAllUserData();
+    // 2. Sign out
+    await signOut();
+    setShowDeleteConfirm(false);
+    // Reload happens automatically on auth state change in App.tsx
+  };
+
   return (
-    <div className="p-4 pb-24 min-h-screen">
+    <div className="p-4 pb-24 min-h-screen relative">
       <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
         <SettingsIcon className="text-muted" />
         {t('settings', 'title')}
@@ -55,12 +78,12 @@ const Settings: React.FC = () => {
         </h2>
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between">
           <div>
-            <div className="text-sm text-white font-medium">{user?.email}</div>
-            <div className="text-xs text-muted">Logged in securely</div>
+            <div className="text-sm text-white font-medium">{user?.email || "Guest User"}</div>
+            <div className="text-xs text-muted">{user ? "Logged in securely" : "Local session"}</div>
           </div>
           <button 
             onClick={() => signOut()}
-            className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
           >
             <LogOut size={16} />
             Sign Out
@@ -241,18 +264,72 @@ const Settings: React.FC = () => {
         </div>
       </section>
 
-      {/* Danger Zone Placeholder */}
+      {/* Danger Zone */}
       <section>
-        <div className="p-4 border border-red-900/30 bg-red-900/10 rounded-xl">
-           <h3 className="text-red-500 text-sm font-bold mb-2 flex items-center gap-2">
-             <Database size={14} />
-             {t('settings', 'dangerZone')}
-           </h3>
-           <button className="text-xs text-red-400 hover:text-red-300 underline">
+        <h2 className="text-sm font-semibold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <AlertTriangle size={16} />
+          {t('settings', 'dangerZone')}
+        </h2>
+        <div className="bg-red-950/20 border border-red-900/50 rounded-xl p-4 space-y-3">
+           <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="w-full py-3 bg-red-900/20 border border-red-800/50 text-red-400 rounded-lg hover:bg-red-900/40 hover:text-red-300 transition-colors flex items-center justify-center gap-2 text-sm font-bold"
+           >
+             <Database size={16} />
              {t('settings', 'resetData')}
+           </button>
+           
+           <button 
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full py-3 bg-transparent border border-red-800/30 text-red-500/70 rounded-lg hover:bg-red-900/10 hover:text-red-400 transition-colors flex items-center justify-center gap-2 text-xs font-mono"
+           >
+             <Trash2 size={14} />
+             {t('settings', 'deleteAccount')}
            </button>
         </div>
       </section>
+
+      {/* Confirmation Modal Component */}
+      {(showResetConfirm || showDeleteConfirm) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-surface border border-red-500/30 w-full max-w-sm rounded-2xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.2)] relative">
+              <button 
+                onClick={() => { setShowResetConfirm(false); setShowDeleteConfirm(false); }}
+                className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                <AlertTriangle size={32} className="text-red-500" />
+              </div>
+
+              <h2 className="text-xl font-bold text-white text-center mb-2">
+                {showResetConfirm ? t('settings', 'confirmResetTitle') : t('settings', 'confirmDeleteTitle')}
+              </h2>
+              
+              <p className="text-muted text-sm text-center mb-6 leading-relaxed">
+                {showResetConfirm ? t('settings', 'confirmResetBody') : t('settings', 'confirmDeleteBody')}
+              </p>
+
+              <div className="space-y-3">
+                <button 
+                  onClick={showResetConfirm ? handleResetData : handleDeleteAccount}
+                  className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
+                >
+                  {t('settings', 'confirm')}
+                </button>
+                <button 
+                  onClick={() => { setShowResetConfirm(false); setShowDeleteConfirm(false); }}
+                  className="w-full py-3 bg-transparent text-zinc-400 font-medium rounded-xl hover:text-white transition-colors"
+                >
+                  {t('settings', 'cancel')}
+                </button>
+              </div>
+           </div>
+        </div>
+      )}
+
     </div>
   );
 };

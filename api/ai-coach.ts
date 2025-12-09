@@ -1,52 +1,71 @@
+
 import { GoogleGenAI } from "@google/genai";
 
-// Vercel Serverless Function Handler
-// 这个文件运行在服务端，拥有访问 process.env 的权限
 export default async function handler(request: any, response: any) {
-  // 1. 安全检查：只允许 POST 请求
   if (request.method !== 'POST') {
     return response.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // 2. 获取服务端环境变量中的 Key
-  // 用户请求更改为 VITE_API_KEY
   const apiKey = process.env.VITE_API_KEY;
 
   if (!apiKey) {
-    console.error("Server Error: VITE_API_KEY is not set in Vercel Environment Variables.");
-    return response.status(500).json({ 
-      error: 'Server configuration error: API Key missing.' 
-    });
+    return response.status(500).json({ error: 'Server configuration error: API Key missing.' });
   }
 
   try {
-    // 3. 解析前端传来的参数
-    const { prompt, systemInstruction } = request.body;
+    const { prompt, thinkingLevel, lang } = request.body;
+    
+    const isZh = lang === 'zh';
+    const isHigh = thinkingLevel === 'high';
 
-    if (!prompt) {
-      return response.status(400).json({ error: 'Prompt is required' });
+    // Base identity
+    let systemInstruction = `
+      You are an expert Strength & Conditioning Coach named "AI-Lift Coach".
+      Your goal is to help the user increase strength (1RM) and muscle mass (Hypertrophy).
+      Style: Professional, encouraging, data-driven.
+    `;
+
+    // Language constraint
+    if (isZh) {
+      systemInstruction += ` You MUST reply in Simplified Chinese (简体中文). Use professional fitness terminology.`;
+    } else {
+      systemInstruction += ` Reply in English.`;
     }
 
-    // 4. 初始化 Gemini (服务端)
-    const ai = new GoogleGenAI({ apiKey });
-    const model = "gemini-2.5-flash";
+    // Thinking Mechanism (Chain of Thought)
+    if (isHigh) {
+      systemInstruction += `
+        \nIMPORTANT: You are in 'Deep Thinking Mode'.
+        Before answering the user, you MUST first analyze the user's data and question step-by-step.
+        Wrap your thinking process inside <thinking> tags.
+        Example format:
+        <thinking>
+        1. Analyze volume...
+        2. Check recovery...
+        3. Formulate strategy...
+        </thinking>
+        [Your actual helpful response here]
+      `;
+    } else {
+      systemInstruction += `\nKeep your answers concise and direct.`;
+    }
 
-    // 5. 调用 Google API
-    // 注意：这里使用 generateContent，因为这是服务端单次调用
+    const ai = new GoogleGenAI({ apiKey });
+    const model = "gemini-2.5-flash"; // Flash is fast enough for both, 2.5 has good reasoning
+
     const result = await ai.models.generateContent({
       model,
       contents: prompt,
       config: {
         systemInstruction: systemInstruction,
-        temperature: 0.7,
+        temperature: isHigh ? 0.7 : 0.5, // Higher temp for creative thinking
       },
     });
 
-    // 6. 返回结果给前端
     return response.status(200).json({ text: result.text });
 
   } catch (error: any) {
-    console.error("Gemini API Error on Backend:", error);
+    console.error("Backend AI Error:", error);
     return response.status(500).json({ 
       error: 'AI Service Error',
       details: error.message 

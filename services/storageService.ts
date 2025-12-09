@@ -1,3 +1,4 @@
+
 import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog } from '../types';
 import { supabase } from './supabase';
 
@@ -12,8 +13,6 @@ const LEGACY_KEYS = {
 let currentUserId = 'default_user';
 
 // --- PROFESSIONAL EXERCISE LIBRARY SEED ---
-// Images are sourced from Unsplash. 
-// gif_url is reserved. To enable animation, replace the empty string with a valid URL.
 const SEED_EXERCISES: Exercise[] = [
   // --- CHEST ---
   {
@@ -253,16 +252,12 @@ const DEFAULT_PROFILE: UserProfile = {
   name: 'Lifter',
   weight: 75,
   height: 175,
-  language: 'en'
+  language: 'zh' // CHANGED DEFAULT TO CHINESE
 };
 
 // --- Helper Functions ---
 
 const getKeys = () => {
-  // If default user, use legacy keys to preserve data for users before auth was added
-  // or simple fallback.
-  // Actually, to support migration:
-  // If we are logged in (UUID), we use `ai_lift_profile_${uuid}`
   if (currentUserId === 'default_user') {
     return LEGACY_KEYS;
   }
@@ -286,26 +281,21 @@ const setLocal = (key: string, val: any) => {
 
 export const storage = {
   setStorageUser: (userId: string) => {
-    // If switching from default to a real user, we might want to migrate data locally first
     const previousUser = currentUserId;
     currentUserId = userId;
 
     if (previousUser === 'default_user' && userId !== 'default_user') {
-      // Check if new user has data
       const newKeys = getKeys();
       const existingProfile = localStorage.getItem(newKeys.PROFILE);
       
       if (!existingProfile) {
-        // New user has no local data, migrate legacy data if exists
         const legacyProfile = localStorage.getItem(LEGACY_KEYS.PROFILE);
         const legacyLogs = localStorage.getItem(LEGACY_KEYS.LOGS);
         
         if (legacyProfile) {
-          console.log('Migrating legacy profile to user scope');
           localStorage.setItem(newKeys.PROFILE, legacyProfile);
         }
         if (legacyLogs) {
-           console.log('Migrating legacy logs to user scope');
            localStorage.setItem(newKeys.LOGS, legacyLogs);
         }
       }
@@ -319,10 +309,7 @@ export const storage = {
   
   saveProfile: async (profile: UserProfile) => {
     const keys = getKeys();
-    // 1. Save Local
     setLocal(keys.PROFILE, profile);
-
-    // 2. Save Remote
     if (supabase && currentUserId !== 'default_user') {
       try {
         await supabase.from('profiles').upsert({
@@ -355,7 +342,6 @@ export const storage = {
 
   saveWorkoutLog: async (log: WorkoutLog) => {
     const keys = getKeys();
-    // 1. Save Local
     const current = getLocal<WorkoutLog[]>(keys.LOGS, []);
     const index = current.findIndex(l => l.id === log.id);
     let updatedLogs;
@@ -367,7 +353,6 @@ export const storage = {
     }
     setLocal(keys.LOGS, updatedLogs);
 
-    // 2. Save Remote
     if (supabase && currentUserId !== 'default_user') {
       try {
         await supabase.from('workout_logs').upsert({
@@ -384,12 +369,10 @@ export const storage = {
 
   deleteWorkoutLog: async (logId: string) => {
     const keys = getKeys();
-    // 1. Delete Local
     const current = getLocal<WorkoutLog[]>(keys.LOGS, []);
     const updatedLogs = current.filter(l => l.id !== logId);
     setLocal(keys.LOGS, updatedLogs);
 
-    // 2. Delete Remote
     if (supabase && currentUserId !== 'default_user') {
       try {
         await supabase.from('workout_logs').delete().eq('id', logId);
@@ -401,11 +384,9 @@ export const storage = {
 
   syncFromSupabase: async () => {
     if (!supabase || currentUserId === 'default_user') return;
-
     const keys = getKeys();
 
     try {
-      // 1. Sync Profile
       const { data: remoteProfile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -415,7 +396,6 @@ export const storage = {
       if (remoteProfile) {
         setLocal(keys.PROFILE, remoteProfile.data);
       } else if (!remoteProfile && !profileError) {
-        // Remote empty, push local (Initial Sync)
         const localProfile = getLocal(keys.PROFILE, DEFAULT_PROFILE);
         await supabase.from('profiles').upsert({
           id: currentUserId,
@@ -423,11 +403,10 @@ export const storage = {
         });
       }
 
-      // 2. Sync Logs
       const { data: remoteLogs } = await supabase
         .from('workout_logs')
         .select('*')
-        .eq('user_id', currentUserId) // STRICTLY filter by user
+        .eq('user_id', currentUserId)
         .order('date', { ascending: true });
 
       const localLogs = getLocal<WorkoutLog[]>(keys.LOGS, []);
@@ -441,27 +420,38 @@ export const storage = {
 
         const mergedList = Array.from(mergedMap.values());
         mergedList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        
         setLocal(keys.LOGS, mergedList);
         
       } else if ((!remoteLogs || remoteLogs.length === 0) && localLogs.length > 0) {
-        // Initial Migration for this specific user
-        console.log(`Performing initial migration for user ${currentUserId}...`);
-        
         const payload = localLogs.map(log => ({
           id: log.id,
           user_id: currentUserId,
           date: new Date(log.date).toISOString(),
           data: log
         }));
-
-        const { error } = await supabase.from('workout_logs').upsert(payload);
-        if (error) console.error("Migration failed", error);
-        else console.log("Migration successful");
+        await supabase.from('workout_logs').upsert(payload);
       }
-
     } catch (err) {
       console.error("Sync error:", err);
+    }
+  },
+
+  clearAllUserData: async () => {
+    const keys = getKeys();
+    localStorage.removeItem(keys.PROFILE);
+    localStorage.removeItem(keys.LOGS);
+    localStorage.removeItem(keys.EXERCISES);
+    localStorage.removeItem(LEGACY_KEYS.PROFILE);
+    localStorage.removeItem(LEGACY_KEYS.LOGS);
+    localStorage.removeItem(LEGACY_KEYS.EXERCISES);
+
+    if (supabase && currentUserId !== 'default_user') {
+      try {
+        await supabase.from('workout_logs').delete().eq('user_id', currentUserId);
+        await supabase.from('profiles').delete().eq('id', currentUserId);
+      } catch (e) {
+        console.error("Remote wipe failed", e);
+      }
     }
   }
 };

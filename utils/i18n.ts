@@ -1,4 +1,5 @@
 
+
 export const translations = {
   en: {
     nav: {
@@ -40,7 +41,10 @@ export const translations = {
       online: "Online",
       placeholder: "Ask about your progress, form, or routine...",
       thinking: "Thinking...",
-      welcome: "Hi! I am your AI Strength Coach. How can I help you improve your training today?"
+      welcome: "Hi! I am your AI Strength Coach. How can I help you improve your training today?",
+      thinkingProcess: "Thinking Process",
+      modeLow: "Fast",
+      modeHigh: "Deep"
     },
     workout: {
       startTitle: "Start Training",
@@ -59,7 +63,13 @@ export const translations = {
       addExercise: "Add Exercise",
       rest: "Rest",
       restTimer: "Rest Timer",
-      skip: "Skip"
+      skip: "Skip",
+      warmup: "W",
+      working: "S",
+      batchSync: "Sync Down",
+      finishModalTitle: "Mission Complete",
+      finishModalBody: "Great session! Your data has been logged.",
+      close: "Close"
     },
     settings: {
       title: "Settings",
@@ -79,7 +89,15 @@ export const translations = {
       save: "Save Changes",
       saved: "Saved!",
       dangerZone: "Danger Zone",
-      resetData: "Reset All Data"
+      resetData: "Reset All Data",
+      deleteAccount: "Delete Account",
+      warning: "Warning",
+      confirmResetTitle: "Wipe All Data?",
+      confirmResetBody: "This will permanently delete all your local and cloud workout logs. This action cannot be undone.",
+      confirmDeleteTitle: "Delete Account?",
+      confirmDeleteBody: "This will delete your account and all associated data permanently. You will be signed out immediately.",
+      confirm: "Yes, Delete Everything",
+      cancel: "Cancel"
     }
   },
   zh: {
@@ -122,7 +140,10 @@ export const translations = {
       online: "在线",
       placeholder: "询问关于进度、动作或计划的问题...",
       thinking: "思考中...",
-      welcome: "你好！我是你的 AI 力量教练。今天想针对训练聊点什么？"
+      welcome: "你好！我是你的 AI 力量教练。今天想针对训练聊点什么？",
+      thinkingProcess: "思考过程",
+      modeLow: "快速",
+      modeHigh: "深度"
     },
     workout: {
       startTitle: "开始训练",
@@ -141,7 +162,13 @@ export const translations = {
       addExercise: "添加动作",
       rest: "休息",
       restTimer: "休息计时",
-      skip: "跳过"
+      skip: "跳过休息",
+      warmup: "热",
+      working: "正",
+      batchSync: "批量同步",
+      finishModalTitle: "训练完成！",
+      finishModalBody: "干得漂亮！本次训练数据已成功保存。",
+      close: "太棒了"
     },
     settings: {
       title: "设置",
@@ -161,7 +188,15 @@ export const translations = {
       save: "保存更改",
       saved: "已保存!",
       dangerZone: "危险区域",
-      resetData: "重置所有数据"
+      resetData: "清空所有数据",
+      deleteAccount: "注销账号",
+      warning: "警告",
+      confirmResetTitle: "确认清空数据？",
+      confirmResetBody: "此操作将永久删除您本地和云端的所有训练记录。数据一旦删除无法恢复。",
+      confirmDeleteTitle: "确认注销账号？",
+      confirmDeleteBody: "此操作将永久删除您的账号及所有关联数据，并立即使您退出登录。",
+      confirm: "确认删除",
+      cancel: "取消"
     }
   }
 };
