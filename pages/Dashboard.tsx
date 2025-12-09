@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight, TrendingUp, Sparkles, Check, PlayCircle, AlertCircle, CalendarCheck, Clock, ShieldAlert, Dumbbell, X, Info, Target } from 'lucide-react';
@@ -24,7 +23,7 @@ const StatCard = ({ title, value, unit, icon: Icon, colorClass, to }: any) => {
           <span className="text-2xl font-bold font-mono text-white tracking-tight">{value}</span>
           {unit && <span className="text-xs text-muted font-medium">{unit}</span>}
         </div>
-        <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1 opacity-70">{title}</p>
+        <p className="text-[10px] text-muted font-bold uppercase tracking-wider mt-1 opacity-70">{title}</p>
       </div>
     </div>
   );

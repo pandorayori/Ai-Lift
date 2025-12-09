@@ -1,4 +1,3 @@
-
 import { WorkoutLog, UserProfile, Language, ThinkingLevel, WorkoutPlan, Equipment, PlanGoal, SplitType, TrainingLevel, HiddenParams } from "../types";
 import { storage } from "./storageService";
 

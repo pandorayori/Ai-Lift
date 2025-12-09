@@ -1,4 +1,3 @@
-
 export enum ExerciseType {
   BARBELL = 'Barbell',
   DUMBBELL = 'Dumbbell',

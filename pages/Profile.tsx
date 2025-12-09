@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Save, CheckCircle2, ArrowLeft, Ruler, Weight, User, Zap, Plus, Trash2, Edit2, Target, X, Search, ChevronRight } from 'lucide-react';

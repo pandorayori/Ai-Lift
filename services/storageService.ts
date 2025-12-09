@@ -1,4 +1,3 @@
-
 import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog, WorkoutPlan, OneRepMax } from '../types';
 import { supabase } from './supabase';
 

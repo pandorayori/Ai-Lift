@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { generateCoachingAdvice } from '../services/geminiService';
 import { storage } from '../services/storageService';
@@ -54,7 +53,7 @@ const AICoach: React.FC = () => {
     setMessages(prev => [...prev, { 
       role: 'model', 
       text: response.text, 
-      thought: response.thought,
+      thought: response.thought, 
       timestamp: Date.now() 
     }]);
     setIsLoading(false);

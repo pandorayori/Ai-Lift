@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { storage } from '../services/storageService';
 import { Search, ChevronRight, PlayCircle, Image as ImageIcon, X, Info, Layers, ChevronDown, Dumbbell, Home, Zap } from 'lucide-react';
