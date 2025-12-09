@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight, TrendingUp, Sparkles, Check, PlayCircle, AlertCircle, CalendarCheck, Clock, ShieldAlert, Dumbbell, X, Info } from 'lucide-react';
+import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight, TrendingUp, Sparkles, Check, PlayCircle, AlertCircle, CalendarCheck, Clock, ShieldAlert, Dumbbell, X, Info, Target } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { generateWorkoutPlan } from '../services/geminiService';
@@ -102,6 +102,9 @@ const Dashboard: React.FC = () => {
   const [planSpotter, setPlanSpotter] = useState(false);
   const [planEquipment, setPlanEquipment] = useState<Equipment[]>(['free_weights', 'machines', 'bodyweight']);
   const [planInjuries, setPlanInjuries] = useState<string[]>([]);
+  // Advanced Params
+  const [planWeakPoint, setPlanWeakPoint] = useState('');
+  const [planMaxDB, setPlanMaxDB] = useState<number | undefined>(undefined);
 
   const volumeData = useMemo(() => {
     const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -129,7 +132,9 @@ const Dashboard: React.FC = () => {
       injuries: planInjuries,
       hiddenParams: {
         session_duration_min: planDuration,
-        has_spotter: planSpotter
+        has_spotter: planSpotter,
+        weak_point_focus: planWeakPoint,
+        max_dumbbell_weight_kg: planMaxDB
       }
     }, profile);
 
@@ -165,7 +170,7 @@ const Dashboard: React.FC = () => {
 
       {/* AI PLAN CENTER */}
       {activePlan ? (
-        <div className="glass-panel p-5 rounded-3xl border border-primary/30 relative overflow-hidden group">
+        <div className="glass-panel p-5 rounded-3xl border border-primary/30 relative overflow-hidden group z-10">
           <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl -translate-y-10 translate-x-10"></div>
           
           {/* Main Card Header */}
@@ -199,7 +204,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div onClick={() => setShowPlanWizard(true)} className="glass-panel p-6 rounded-3xl border border-white/10 border-dashed relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors">
+        <div onClick={() => setShowPlanWizard(true)} className="glass-panel p-6 rounded-3xl border border-white/10 border-dashed relative overflow-hidden group cursor-pointer hover:bg-white/5 transition-colors z-10">
            <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
               <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center text-secondary border border-secondary/30 shadow-[0_0_20px_rgba(139,92,246,0.2)]">
                  <Sparkles size={32} />
@@ -301,6 +306,23 @@ const Dashboard: React.FC = () => {
                             <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${planSpotter ? 'left-6' : 'left-1'}`} />
                           </button>
                         </div>
+                        
+                        {/* Advanced: Weak Point */}
+                        <div className="space-y-2 pt-2 border-t border-white/5">
+                           <label className="text-xs text-zinc-400 flex items-center gap-2"><Target size={12} /> {t('plan', 'weakPoint')}</label>
+                           <input type="text" value={planWeakPoint} onChange={(e) => setPlanWeakPoint(e.target.value)} placeholder="e.g. Upper Chest, Side Delts" className="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-white/30" />
+                        </div>
+                        
+                        {/* Advanced: Max Dumbbell (only if Home/Free weights) */}
+                        {(planEquipment.includes('free_weights') || planEquipment.includes('bands') || planEquipment.includes('kettlebells')) && (
+                          <div className="space-y-2">
+                             <label className="text-xs text-zinc-400 flex items-center gap-2"><Dumbbell size={12} /> {t('plan', 'maxDumbbell')}</label>
+                             <div className="flex items-center gap-2">
+                                <input type="number" value={planMaxDB || ''} onChange={(e) => setPlanMaxDB(parseFloat(e.target.value))} placeholder="∞" className="flex-1 bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:outline-none focus:border-white/30" />
+                                <span className="text-xs text-muted">kg</span>
+                             </div>
+                          </div>
+                        )}
                       </div>
                    </div>
                  )}
@@ -386,6 +408,7 @@ const Dashboard: React.FC = () => {
                                 <span>{ex.sets} Sets</span>
                                 <span>{ex.reps} Reps</span>
                              </div>
+                             {ex.notes && <div className="text-[10px] text-primary/70 mt-1 italic">{ex.notes}</div>}
                           </div>
                        </div>
                     ))}

@@ -40,6 +40,8 @@ export const translations = {
       duration: "Session Length (min)",
       spotter: "Has Spotter?",
       confirmGenerate: "Generate System",
+      weakPoint: "Weak Point Focus (Optional)",
+      maxDumbbell: "Max DB Weight (Per Hand)",
       // Goals
       hypertrophy: "Hypertrophy (Muscle Gain)",
       strength: "Max Strength (1RM)",
@@ -265,6 +267,8 @@ export const translations = {
       duration: "单次时长 (分钟)",
       spotter: "有训练搭档 (Spotter)?",
       confirmGenerate: "生成训练系统",
+      weakPoint: "弱项聚焦 (选填)",
+      maxDumbbell: "最大哑铃重量 (单只kg)",
       // Goals
       hypertrophy: "增肌 (肌肥大)",
       strength: "绝对力量 (1RM)",

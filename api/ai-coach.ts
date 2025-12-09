@@ -59,7 +59,7 @@ export default async function handler(req: Request) {
         - split (e.g., PPL, Upper/Lower, Bro Split)
         - equipment (List of available tools)
         - constraints (Injuries list)
-        - hidden_params (Session duration, Spotter availability, etc.)
+        - hidden_params (Session duration, Spotter availability, max_dumbbell_weight_kg, weak_point_focus)
         - available_days (1-7 days per week)
         - exercise_library (Only use IDs/Names from here)
 
@@ -74,8 +74,11 @@ export default async function handler(req: Request) {
            - Shoulder injury -> No Overhead Press.
            - Knee injury -> Careful with deep squats/plyometrics.
            - No Spotter -> Avoid heavy Barbell Bench Press to failure (Suggest Dumbbell or Machine).
-        4. **Library Adherence:** Use exact IDs from the provided library.
-        5. **Volume:**
+        4. **Advanced Params:**
+           - **Weak Point Focus**: If defined (e.g., "Upper Chest"), prioritize exercises hitting this area early in the session or add isolation volume.
+           - **Max Dumbbell Weight**: If user's max DB is low (e.g., <20kg) and they need Strength, specify higher reps (15-20) or tempo/pauses in the 'notes' to ensure stimulus, or substitute with Bodyweight progressions.
+        5. **Library Adherence:** Use exact IDs from the provided library.
+        6. **Volume:**
            - Novice: 10-12 sets/muscle/week.
            - Advanced: 16-20 sets/muscle/week.
            - Adjust based on 'session_duration_min'.
