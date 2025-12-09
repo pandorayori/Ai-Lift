@@ -1,5 +1,5 @@
 
-import { WorkoutLog, UserProfile, Language, ThinkingLevel, WorkoutPlan, Equipment, PlanGoal, SplitType, TrainingLevel, HiddenParams } from "../types";
+import { WorkoutLog, UserProfile, Language, ThinkingLevel, WorkoutPlan, Equipment, PlanGoal, SplitType, TrainingLevel, HiddenParams, ChatMessage } from "../types";
 import { storage } from "./storageService";
 import { getPresetPlan } from "./offlinePlanner";
 
@@ -7,32 +7,35 @@ export const generateCoachingAdvice = async (
   query: string,
   recentLogs: WorkoutLog[],
   profile: UserProfile,
-  thinkingLevel: ThinkingLevel = 'low'
+  thinkingLevel: ThinkingLevel = 'low',
+  history: ChatMessage[] = []
 ): Promise<{ text: string, thought?: string }> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  const context = `
-    User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg, Age ${profile.age || "Unknown"}, Gender ${profile.gender || "Unknown"}.
-    Recent Training History (Last 5 sessions):
-    ${recentLogs
-      .slice(-5)
-      .map(
-        (log) =>
-          `- Date: ${log.date.split("T")[0]}, Volume: ${log.total_volume.toFixed(
-            0
-          )}, Duration: ${log.duration_minutes}m`
-      )
-      .join("\n")}
-  `;
-
-  const fullPrompt = `Context:\n${context}\n\nUser Query: ${query}`;
+  // Build Context for System Instruction (Not user prompt)
+  const contextData = {
+    profile: {
+      height: profile.height,
+      weight: profile.weight,
+      age: profile.age,
+      gender: profile.gender,
+      goals: profile.goals
+    },
+    recent_workouts: recentLogs.slice(-3).map(log => ({
+      date: log.date.split("T")[0],
+      name: log.name,
+      volume: log.total_volume
+    }))
+  };
 
   try {
     const res = await fetch('/api/ai-coach', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prompt: fullPrompt,
+        message: query,
+        history: history, // Send previous chat history
+        context: contextData, // Send user context
         thinkingLevel: thinkingLevel, 
         lang: lang,
         mode: 'chat'
@@ -61,14 +64,13 @@ export const generateCoachingAdvice = async (
     console.error("AI Coach API Error:", error);
     return {
       text: lang === "zh"
-      ? "抱歉，AI 服务暂时不可用。"
+      ? "抱歉，AI 服务暂时不可用。请稍后再试。"
       : "Sorry, AI service is unavailable."
     };
   }
 };
 
-// --- PROFESSIONAL PLAN GENERATION ---
-
+// ... (Rest of the file: generateWorkoutPlan remains unchanged)
 interface ProfessionalPlanConfig {
   goal: PlanGoal;
   level: TrainingLevel;
@@ -85,15 +87,13 @@ export const generateWorkoutPlan = async (
 ): Promise<{ plan: WorkoutPlan, source: 'ai' | 'preset' }> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  // 1. ALWAYS Generate a Base Preset Plan First (Fallback & Context)
   const basePreset = getPresetPlan(
     { goal: config.goal, split: config.split, days: config.days }, 
     profile
   );
 
-  // 2. Prepare Data for AI
-  const fullLibrary = storage.getExercises();
-  const minimalLibrary = fullLibrary.map(ex => ({
+  const fullLibrary = storage.getExercises ? storage.getExercises() : [];
+  const minimalLibrary = fullLibrary.map((ex: any) => ({
     id: ex.id,
     name: lang === 'zh' && ex.name_zh ? ex.name_zh : ex.name,
     muscle: ex.target_muscle,
@@ -117,12 +117,11 @@ export const generateWorkoutPlan = async (
       injuries: config.injuries
     },
     hidden_params: config.hiddenParams,
-    base_template: basePreset.schedule, // Send the preset as a starting point
+    base_template: basePreset.schedule,
     exercise_library: minimalLibrary
   };
 
   try {
-    // 3. Attempt AI Optimization
     const res = await fetch('/api/ai-coach', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -139,7 +138,6 @@ export const generateWorkoutPlan = async (
     const cleanText = data.text.replace(/```json/g, '').replace(/```/g, '').trim();
     const result = JSON.parse(cleanText);
     
-    // Transform AI result
     const workoutPlan: WorkoutPlan = {
       id: crypto.randomUUID(),
       name: result.plan_meta?.goal + " (AI Customized)",
@@ -172,7 +170,6 @@ export const generateWorkoutPlan = async (
 
   } catch (error) {
     console.error("AI Generation Failed, using Preset:", error);
-    // 4. FALLBACK: Return the Preset Plan if AI fails
     return { plan: basePreset, source: 'preset' };
   }
 };
