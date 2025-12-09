@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navigation from './components/Navigation';
@@ -8,6 +9,7 @@ import WorkoutLogger from './pages/WorkoutLogger';
 import Settings from './pages/Settings';
 import Auth from './pages/Auth';
 import History from './pages/History';
+import Profile from './pages/Profile';
 import { AppProvider } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -55,6 +57,7 @@ const AppContent: React.FC = () => {
             <Route path="/coach" element={<AICoach />} />
             <Route path="/history" element={<History />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/profile" element={<Profile />} />
             {/* 404 兜底跳转 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

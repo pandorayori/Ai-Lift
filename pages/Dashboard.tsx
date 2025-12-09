@@ -8,6 +8,7 @@ import { generateWorkoutPlan } from '../services/geminiService';
 import { storage } from '../services/storageService';
 import { WorkoutPlan, PlanGoal, SplitType, TrainingLevel, Equipment, PlanDay } from '../types';
 
+// ... (Keep existing StatCard and WeeklySchedule components) ...
 const StatCard = ({ title, value, unit, icon: Icon, colorClass, to }: any) => {
   const CardContent = (
     <div className="glass-card rounded-2xl p-4 flex flex-col justify-between h-28 relative overflow-hidden group hover:border-white/10 transition-all">
@@ -31,7 +32,6 @@ const StatCard = ({ title, value, unit, icon: Icon, colorClass, to }: any) => {
   return to ? <Link to={to} className="block active:scale-95 transition-transform">{CardContent}</Link> : CardContent;
 };
 
-// --- Weekly Schedule Component ---
 const WeeklySchedule = ({ plan, onDayClick }: { plan: WorkoutPlan, onDayClick: (day: PlanDay) => void }) => {
   const { t } = useAppContext();
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; // 0=Mon, 6=Sun
@@ -78,12 +78,9 @@ const Dashboard: React.FC = () => {
   const [showPlanWizard, setShowPlanWizard] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedDay, setSelectedDay] = useState<PlanDay | null>(null);
-  
-  // Active Plan State
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(storage.getActivePlan());
 
   // --- Scroll Lock Effect ---
-  // Prevents body scrolling when a modal is open
   useEffect(() => {
     if (showPlanWizard || selectedDay) {
       document.body.style.overflow = 'hidden';
@@ -159,9 +156,11 @@ const Dashboard: React.FC = () => {
             {isSyncing && <RefreshCw className="animate-spin text-primary" size={10} />}
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-primary font-bold shadow-[0_0_15px_rgba(204,255,0,0.2)]">
-            {profile.name[0]}
-        </div>
+        <Link to="/profile">
+           <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${profile.avatar || 'from-primary to-emerald-400'} border border-white/10 flex items-center justify-center text-black font-bold shadow-[0_0_15px_rgba(204,255,0,0.2)] hover:scale-105 transition-transform`}>
+               {profile.name[0]}
+           </div>
+        </Link>
       </header>
 
       {/* AI PLAN CENTER */}
@@ -400,8 +399,8 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-2 gap-3">
         <StatCard title={t('dashboard', 'workouts')} value={totalWorkouts} unit="" icon={Calendar} colorClass="text-accent" to="/history" />
         <StatCard title={t('dashboard', 'lastVolume')} value={(recentVolume / 1000).toFixed(1)} unit="k" icon={Activity} colorClass="text-primary" />
-        <StatCard title={t('dashboard', 'weight')} value={profile.weight} unit="kg" icon={Scale} colorClass="text-purple-400" to="/settings" />
-        <StatCard title={t('dashboard', 'est1rm')} value="--" unit="kg" icon={Zap} colorClass="text-pink-500" />
+        <StatCard title={t('dashboard', 'weight')} value={profile.weight} unit="kg" icon={Scale} colorClass="text-purple-400" to="/profile" />
+        <StatCard title={t('dashboard', 'est1rm')} value={profile.oneRepMaxes?.find(r=>r.id==='bp')?.weight || '--'} unit="kg" icon={Zap} colorClass="text-pink-500" to="/profile" />
       </div>
 
       {/* Volume Chart */}

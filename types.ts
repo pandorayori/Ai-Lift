@@ -31,6 +31,10 @@ export interface Exercise {
   video_url?: string;
   instructions: string;
   instructions_zh?: string;
+  // New Fields for AI Generated Content
+  tags?: string[];
+  notes?: string; // NSCA Standard Cues
+  ai_revision?: boolean;
 }
 
 export type SetType = 'warmup' | 'working';
@@ -64,9 +68,23 @@ export interface WorkoutLog {
 export type Language = 'en' | 'zh';
 export type Gender = 'Male' | 'Female' | 'Other';
 
+export interface OneRepMax {
+  id: string;
+  name: string;
+  weight: number;
+  goal_weight?: number; 
+  is_default?: boolean; 
+}
+
+export interface BodyGoals {
+  target_weight?: number;
+  target_body_fat?: number;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
+  avatar?: string; 
   weight: number;
   height: number;
   body_fat_percentage?: number;
@@ -74,6 +92,8 @@ export interface UserProfile {
   gender?: Gender;
   language: Language;
   injuries?: string[];
+  oneRepMaxes?: OneRepMax[];
+  goals?: BodyGoals;
 }
 
 export interface ChatMessage {
@@ -85,7 +105,7 @@ export interface ChatMessage {
 
 export type ThinkingLevel = 'low' | 'high';
 
-// --- NEW PROFESSIONAL PLAN TYPES ---
+// --- PROFESSIONAL PLAN TYPES ---
 
 export type PlanGoal = 
   | 'hypertrophy' | 'strength' | 'power' | 'posture' 
@@ -138,7 +158,7 @@ export interface WorkoutPlan {
   hidden_params: HiddenParams;
   
   created_at: number;
-  schedule: PlanDay[]; // Fixed 7 items
-  current_day_index: number; // 0-6 (Maps to Monday-Sunday effectively)
+  schedule: PlanDay[]; 
+  current_day_index: number; 
   coach_notes?: string;
 }

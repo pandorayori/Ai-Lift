@@ -3,14 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { storage } from '../services/storageService';
-import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database, LogOut, AlertTriangle, Trash2, X } from 'lucide-react';
+import { User, Globe, Cloud, RefreshCw, Database, LogOut, AlertTriangle, Trash2, X, ChevronRight, UserCog } from 'lucide-react';
 import { supabase } from '../services/supabase';
+import { Link } from 'react-router-dom';
 
 const Settings: React.FC = () => {
   const { profile, updateProfile, t, syncData, isSyncing, refreshData } = useAppContext();
   const { signOut, user } = useAuth();
-  const [formData, setFormData] = useState(profile);
-  const [isSaved, setIsSaved] = useState(false);
   const [hasSupabase, setHasSupabase] = useState(false);
 
   // Modal States
@@ -18,49 +17,20 @@ const Settings: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    setFormData(profile);
     setHasSupabase(!!supabase);
   }, [profile]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'height' || name === 'weight' || name === 'body_fat_percentage' || name === 'age' 
-        ? parseFloat(value) 
-        : value
-    }));
-  };
-
-  const handleSave = () => {
-    updateProfile(formData);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
-  };
-
-  const calculateBMI = () => {
-    if (formData.weight && formData.height) {
-      const heightM = formData.height / 100;
-      return (formData.weight / (heightM * heightM)).toFixed(1);
-    }
-    return '--';
-  };
 
   const handleResetData = async () => {
     await storage.clearAllUserData();
     refreshData();
     setShowResetConfirm(false);
-    // Reload to ensure state is clean
     window.location.reload();
   };
 
   const handleDeleteAccount = async () => {
-    // 1. Wipe data
     await storage.clearAllUserData();
-    // 2. Sign out
     await signOut();
     setShowDeleteConfirm(false);
-    // Reload happens automatically on auth state change in App.tsx
   };
 
   return (
@@ -69,6 +39,26 @@ const Settings: React.FC = () => {
         <SettingsIcon className="text-muted" />
         {t('settings', 'title')}
       </h1>
+
+      {/* Edit Profile Link */}
+      <Link to="/profile" className="block mb-6">
+         <div className="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between hover:border-primary/50 transition-all group">
+            <div className="flex items-center gap-4">
+               <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${profile.avatar || 'from-primary to-emerald-400'} flex items-center justify-center text-black font-bold text-xl`}>
+                 {profile.name[0]}
+               </div>
+               <div>
+                  <h3 className="text-white font-bold">{profile.name}</h3>
+                  <p className="text-xs text-muted mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
+                    <UserCog size={12} /> {t('settings', 'editProfile')}
+                  </p>
+               </div>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-500 group-hover:bg-primary group-hover:text-black transition-all">
+               <ChevronRight size={18} />
+            </div>
+         </div>
+      </Link>
 
       {/* Account Section */}
       <section className="mb-6">
@@ -145,122 +135,6 @@ const Settings: React.FC = () => {
               中文
             </button>
           </div>
-        </div>
-      </section>
-
-      {/* Personal Data Section */}
-      <section className="mb-6">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
-          <User size={16} />
-          {t('settings', 'personalData')}
-        </h2>
-        <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
-          
-          {/* Name */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">{t('settings', 'name')}</label>
-            <input 
-              type="text" 
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Gender */}
-            <div>
-               <label className="block text-xs text-gray-400 mb-1">{t('settings', 'gender')}</label>
-               <select 
-                name="gender"
-                value={formData.gender || 'Male'}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none appearance-none"
-               >
-                 <option value="Male">{t('settings', 'male')}</option>
-                 <option value="Female">{t('settings', 'female')}</option>
-                 <option value="Other">{t('settings', 'other')}</option>
-               </select>
-            </div>
-
-            {/* Age */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'age')}</label>
-              <input 
-                type="number" 
-                name="age"
-                value={formData.age || ''}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Height */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'height')}</label>
-              <input 
-                type="number" 
-                name="height"
-                value={formData.height}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-             {/* Weight */}
-             <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'weight')}</label>
-              <input 
-                type="number" 
-                name="weight"
-                value={formData.weight}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Body Fat */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'bodyFat')}</label>
-              <input 
-                type="number" 
-                name="body_fat_percentage"
-                value={formData.body_fat_percentage || ''}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-             {/* BMI Display */}
-             <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'bmi')}</label>
-              <div className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-3 py-2 text-muted cursor-not-allowed">
-                {calculateBMI()}
-              </div>
-            </div>
-          </div>
-
-          <button 
-            onClick={handleSave}
-            className={`w-full mt-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-              isSaved 
-              ? 'bg-green-500/20 text-green-500 border border-green-500/50' 
-              : 'bg-primary text-background hover:bg-opacity-90'
-            }`}
-          >
-            {isSaved ? (
-              <>
-                <CheckCircle2 size={18} /> {t('settings', 'saved')}
-              </>
-            ) : (
-              <>
-                <Save size={18} /> {t('settings', 'save')}
-              </>
-            )}
-          </button>
         </div>
       </section>
 

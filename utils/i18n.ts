@@ -8,6 +8,7 @@ export const translations = {
       coach: "AI Coach",
       settings: "Settings"
     },
+    // ... (Keep existing sections) ...
     dashboard: {
       greeting: "Hello",
       subtitle: "Ready to crush it today?",
@@ -39,7 +40,6 @@ export const translations = {
       duration: "Session Length (min)",
       spotter: "Has Spotter?",
       confirmGenerate: "Generate System",
-      
       // Goals
       hypertrophy: "Hypertrophy (Muscle Gain)",
       strength: "Max Strength (1RM)",
@@ -49,14 +49,12 @@ export const translations = {
       conditioning: "Metabolic Conditioning",
       sport_specific: "Sport Specific (Athletic)",
       rehab: "Rehab / Prehab Transition",
-
       // Levels
       novice: "True Novice",
       novice_plus: "Novice Advanced",
       intermediate: "Intermediate",
       advanced: "Advanced",
       elite: "Competitive / Elite",
-
       // Splits
       full_body: "Full Body",
       upper_lower: "Upper / Lower",
@@ -70,7 +68,6 @@ export const translations = {
       torso_legs: "Torso / Limbs",
       crossfit: "CrossFit Hybrid",
       active_recovery: "Active Recovery Focus",
-
       // Equipment
       free_weights: "Free Weights (BB/DB)",
       machines: "Machines (Plate/Pin)",
@@ -80,7 +77,6 @@ export const translations = {
       kettlebells: "Kettlebells",
       squat_rack: "Squat Rack / Cage",
       cardio_machine: "Cardio Machines",
-
       // Constraints
       shoulder: "Shoulder",
       knee: "Knee",
@@ -151,12 +147,29 @@ export const translations = {
       loadPlan: "Load Plan: ",
       plannedSession: "Planned Session Available"
     },
+    profile: {
+      title: "My Profile",
+      editAvatar: "Customize Avatar",
+      oneRepMax: "1RM Strength Records",
+      squat: "Squat",
+      bench: "Bench Press",
+      deadlift: "Deadlift",
+      addRecord: "Add Lift",
+      maxItems: "Max 8 items",
+      placeholderName: "Exercise Name",
+      placeholderWeight: "Current",
+      placeholderGoal: "Goal",
+      stats: "Body Stats",
+      goals: "Goals & Targets",
+      current: "Current",
+      target: "Target"
+    },
     settings: {
       title: "Settings",
       general: "General",
       language: "Language",
       personalData: "Personal Data",
-      name: "Name",
+      name: "Nickname",
       gender: "Gender",
       male: "Male",
       female: "Female",
@@ -165,6 +178,8 @@ export const translations = {
       height: "Height (cm)",
       weight: "Weight (kg)",
       bodyFat: "Body Fat (%)",
+      targetWeight: "Target Weight (kg)",
+      targetFat: "Target Body Fat (%)",
       bmi: "BMI",
       save: "Save Changes",
       saved: "Saved!",
@@ -177,7 +192,8 @@ export const translations = {
       confirmDeleteTitle: "Delete Account?",
       confirmDeleteBody: "This will delete your account and all associated data permanently. You will be signed out immediately.",
       confirm: "Yes, Delete Everything",
-      cancel: "Cancel"
+      cancel: "Cancel",
+      editProfile: "Edit Profile & Stats"
     },
     categories: {
       "Chest": "Chest",
@@ -249,7 +265,6 @@ export const translations = {
       duration: "单次时长 (分钟)",
       spotter: "有训练搭档 (Spotter)?",
       confirmGenerate: "生成训练系统",
-
       // Goals
       hypertrophy: "增肌 (肌肥大)",
       strength: "绝对力量 (1RM)",
@@ -259,14 +274,12 @@ export const translations = {
       conditioning: "体能储备",
       sport_specific: "专项运动表现",
       rehab: "康复过渡",
-
       // Levels
       novice: "完全新手",
       novice_plus: "新手进阶",
       intermediate: "中级训练者",
       advanced: "中高级 / 精英",
       elite: "竞赛级",
-
       // Splits
       full_body: "全身训练 (Full Body)",
       upper_lower: "上下肢分化",
@@ -280,7 +293,6 @@ export const translations = {
       torso_legs: "躯干/四肢分化",
       crossfit: "混合体能 (CrossFit)",
       active_recovery: "主动恢复式",
-
       // Equipment
       free_weights: "自由器械 (杠/哑铃)",
       machines: "固定器械",
@@ -290,7 +302,6 @@ export const translations = {
       kettlebells: "壶铃",
       squat_rack: "深蹲架",
       cardio_machine: "有氧器械",
-
       // Constraints
       shoulder: "肩部",
       knee: "膝盖",
@@ -361,6 +372,23 @@ export const translations = {
       loadPlan: "载入今日计划：",
       plannedSession: "计划训练日"
     },
+    profile: {
+      title: "个人资料",
+      editAvatar: "定制头像风格",
+      oneRepMax: "极限力量记录 (1RM)",
+      squat: "深蹲",
+      bench: "卧推",
+      deadlift: "硬拉",
+      addRecord: "添加项目",
+      maxItems: "最多添加 8 项",
+      placeholderName: "动作名称",
+      placeholderWeight: "当前成绩",
+      placeholderGoal: "目标",
+      stats: "基础数据",
+      goals: "目标设定",
+      current: "当前",
+      target: "目标"
+    },
     settings: {
       title: "设置",
       general: "通用",
@@ -375,6 +403,8 @@ export const translations = {
       height: "身高 (cm)",
       weight: "体重 (kg)",
       bodyFat: "体脂率 (%)",
+      targetWeight: "目标体重 (kg)",
+      targetFat: "目标体脂 (%)",
       bmi: "BMI 指数",
       save: "保存更改",
       saved: "已保存!",
@@ -387,7 +417,8 @@ export const translations = {
       confirmDeleteTitle: "确认注销账号？",
       confirmDeleteBody: "此操作将永久删除您的账号及所有关联数据，并立即使您退出登录。",
       confirm: "确认删除",
-      cancel: "取消"
+      cancel: "取消",
+      editProfile: "编辑资料 & 力量数据"
     },
     categories: {
       "Chest": "胸部",
