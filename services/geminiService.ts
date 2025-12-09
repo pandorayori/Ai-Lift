@@ -1,5 +1,7 @@
+
 import { WorkoutLog, UserProfile, Language, ThinkingLevel, WorkoutPlan, Equipment, PlanGoal, SplitType, TrainingLevel, HiddenParams } from "../types";
 import { storage } from "./storageService";
+import { getPresetPlan } from "./offlinePlanner";
 
 export const generateCoachingAdvice = async (
   query: string,
@@ -23,7 +25,6 @@ export const generateCoachingAdvice = async (
       .join("\n")}
   `;
 
-  // Base prompt construction
   const fullPrompt = `Context:\n${context}\n\nUser Query: ${query}`;
 
   try {
@@ -32,23 +33,19 @@ export const generateCoachingAdvice = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt: fullPrompt,
-        thinkingLevel: thinkingLevel, // Pass the level to backend
+        thinkingLevel: thinkingLevel, 
         lang: lang,
         mode: 'chat'
       }),
     });
 
     const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Server Error');
-    }
+    if (!res.ok) throw new Error(data.error || 'Server Error');
     
     let rawText = data.text || "";
     let thought = undefined;
     let finalText = rawText;
 
-    // Parse <thinking> tags if present
     const thinkMatch = rawText.match(/<thinking>([\s\S]*?)<\/thinking>/);
     if (thinkMatch) {
       thought = thinkMatch[1].trim();
@@ -85,10 +82,16 @@ interface ProfessionalPlanConfig {
 export const generateWorkoutPlan = async (
   config: ProfessionalPlanConfig,
   profile: UserProfile
-): Promise<WorkoutPlan | null> => {
+): Promise<{ plan: WorkoutPlan, source: 'ai' | 'preset' }> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  // 1. Gather Exercise Library (Lightweight version for tokens)
+  // 1. ALWAYS Generate a Base Preset Plan First (Fallback & Context)
+  const basePreset = getPresetPlan(
+    { goal: config.goal, split: config.split, days: config.days }, 
+    profile
+  );
+
+  // 2. Prepare Data for AI
   const fullLibrary = storage.getExercises();
   const minimalLibrary = fullLibrary.map(ex => ({
     id: ex.id,
@@ -98,7 +101,6 @@ export const generateWorkoutPlan = async (
     type: ex.type
   }));
 
-  // 2. Construct Professional Payload for Backend
   const payload = {
     user_profile: {
       weight: profile.weight,
@@ -115,10 +117,12 @@ export const generateWorkoutPlan = async (
       injuries: config.injuries
     },
     hidden_params: config.hiddenParams,
+    base_template: basePreset.schedule, // Send the preset as a starting point
     exercise_library: minimalLibrary
   };
 
   try {
+    // 3. Attempt AI Optimization
     const res = await fetch('/api/ai-coach', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -132,14 +136,13 @@ export const generateWorkoutPlan = async (
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Server Error');
 
-    // Parse JSON
     const cleanText = data.text.replace(/```json/g, '').replace(/```/g, '').trim();
     const result = JSON.parse(cleanText);
     
-    // Transform API result to internal WorkoutPlan format
+    // Transform AI result
     const workoutPlan: WorkoutPlan = {
       id: crypto.randomUUID(),
-      name: result.plan_meta?.goal + " - " + result.plan_meta?.split_type,
+      name: result.plan_meta?.goal + " (AI Customized)",
       goal: config.goal,
       level: config.level,
       split: config.split,
@@ -156,7 +159,7 @@ export const generateWorkoutPlan = async (
           exercise_id: e.exercise_id,
           name: e.exercise_name,
           sets: e.sets,
-          reps: e.reps, // API now returns 'reps' directly string/range
+          reps: e.reps, 
           rest_sec: e.rest_sec || 60,
           notes: e.notes
         })) : []
@@ -165,10 +168,11 @@ export const generateWorkoutPlan = async (
       coach_notes: result.plan_meta?.coach_notes
     };
 
-    return workoutPlan;
+    return { plan: workoutPlan, source: 'ai' };
 
   } catch (error) {
-    console.error("Plan Generation Error:", error);
-    return null;
+    console.error("AI Generation Failed, using Preset:", error);
+    // 4. FALLBACK: Return the Preset Plan if AI fails
+    return { plan: basePreset, source: 'preset' };
   }
 };

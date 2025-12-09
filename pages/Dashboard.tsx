@@ -1,11 +1,34 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight, TrendingUp, Sparkles, Check, PlayCircle, AlertCircle, CalendarCheck, Clock, ShieldAlert, Dumbbell, X, Info, Target } from 'lucide-react';
+import { Activity, Zap, Scale, Calendar, RefreshCw, ChevronRight, TrendingUp, Sparkles, Check, PlayCircle, AlertCircle, CalendarCheck, Clock, ShieldAlert, Dumbbell, X, Info, Target, AlertTriangle } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { generateWorkoutPlan } from '../services/geminiService';
 import { storage } from '../services/storageService';
 import { WorkoutPlan, PlanGoal, SplitType, TrainingLevel, Equipment, PlanDay } from '../types';
+
+// Toast Component
+const Toast = ({ show, message, type }: { show: boolean, message: string, type: 'success' | 'error' | 'warning' }) => {
+  if (!show) return null;
+  const colors = {
+    success: 'bg-green-500/20 border-green-500 text-green-400',
+    error: 'bg-red-500/20 border-red-500 text-red-400',
+    warning: 'bg-yellow-500/20 border-yellow-500 text-yellow-400'
+  };
+  const icons = {
+    success: <Check size={18} />,
+    error: <AlertCircle size={18} />,
+    warning: <AlertTriangle size={18} />
+  };
+
+  return (
+    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full border flex items-center gap-3 backdrop-blur-md shadow-2xl animate-in slide-in-from-top-4 ${colors[type]}`}>
+      {icons[type]}
+      <span className="font-bold text-sm">{message}</span>
+    </div>
+  );
+};
 
 // ... (Keep existing StatCard and WeeklySchedule components) ...
 const StatCard = ({ title, value, unit, icon: Icon, colorClass, to }: any) => {
@@ -78,6 +101,9 @@ const Dashboard: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedDay, setSelectedDay] = useState<PlanDay | null>(null);
   const [activePlan, setActivePlan] = useState<WorkoutPlan | null>(storage.getActivePlan());
+  
+  // Toast State
+  const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error' | 'warning'}>({ show: false, msg: '', type: 'success' });
 
   // --- Scroll Lock Effect ---
   useEffect(() => {
@@ -120,9 +146,16 @@ const Dashboard: React.FC = () => {
     setter(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
   };
 
+  const showToast = (msg: string, type: 'success' | 'error' | 'warning') => {
+    setToast({ show: true, msg, type });
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+  };
+
   const handleGenerate = async () => {
     setIsGenerating(true);
-    const plan = await generateWorkoutPlan({
+    
+    // Call Service
+    const result = await generateWorkoutPlan({
       goal: planGoal,
       level: planLevel,
       split: planSplit,
@@ -137,17 +170,32 @@ const Dashboard: React.FC = () => {
       }
     }, profile);
 
-    if (plan) {
-      storage.saveActivePlan(plan);
-      setActivePlan(plan);
+    if (result && result.plan) {
+      storage.saveActivePlan(result.plan);
+      setActivePlan(result.plan);
       setShowPlanWizard(false);
       refreshData();
+
+      if (result.source === 'ai') {
+        showToast("✅ AI Plan Generated Successfully!", 'success');
+      } else {
+        showToast("⚠️ AI Unresponsive. Loaded Expert Preset.", 'warning');
+      }
+
+      // Auto Redirect to Workout
+      setTimeout(() => {
+        navigate('/workout');
+      }, 1500);
+    } else {
+       showToast("Failed to generate plan.", 'error');
     }
+    
     setIsGenerating(false);
   };
 
   return (
     <div className="p-5 pb-32 space-y-6">
+      <Toast show={toast.show} message={toast.msg} type={toast.type} />
       
       {/* Header */}
       <header className="flex justify-between items-end mb-4">
