@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Save, CheckCircle2, ArrowLeft, Ruler, Weight, User, Zap, Plus, Trash2, Edit2, Target, X, Search, ChevronRight } from 'lucide-react';
@@ -14,13 +15,17 @@ const AVATAR_COLORS = [
 ];
 
 // Helper: Exercise Picker Modal for Profile
-const ProfileExercisePicker = ({ isOpen, onClose, onSelect }: { isOpen: boolean; onClose: () => void; onSelect: (ex: Exercise) => void }) => {
+const ProfileExercisePicker = ({ isOpen, onClose, onSelect, excludeIds }: { isOpen: boolean; onClose: () => void; onSelect: (ex: Exercise) => void; excludeIds: string[] }) => {
   const { exercises, language } = useAppContext();
   const [term, setTerm] = useState('');
 
   if (!isOpen) return null;
 
   const filtered = exercises.filter(e => {
+    // 1. Exclude existing
+    if (excludeIds.includes(e.id)) return false;
+    
+    // 2. Search filter
     const name = language === 'zh' && e.name_zh ? e.name_zh : e.name;
     return name.toLowerCase().includes(term.toLowerCase());
   });
@@ -57,6 +62,9 @@ const ProfileExercisePicker = ({ isOpen, onClose, onSelect }: { isOpen: boolean;
                    <ChevronRight size={16} className="text-muted" />
                 </button>
              ))}
+             {filtered.length === 0 && (
+                <div className="p-4 text-center text-xs text-muted">No exercises found</div>
+             )}
           </div>
        </div>
     </div>
@@ -64,7 +72,7 @@ const ProfileExercisePicker = ({ isOpen, onClose, onSelect }: { isOpen: boolean;
 };
 
 const Profile: React.FC = () => {
-  const { profile, updateProfile, t, language } = useAppContext();
+  const { profile, updateProfile, t, language, exercises } = useAppContext();
   const [formData, setFormData] = useState(profile);
   const [isSaved, setIsSaved] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -75,10 +83,11 @@ const Profile: React.FC = () => {
     let changed = false;
 
     if (!updated.oneRepMaxes) {
+       // Should match storageService defaults now
        updated.oneRepMaxes = [
-           { id: 'sq', name: 'Squat', weight: 0, goal_weight: 0, is_default: true },
-           { id: 'bp', name: 'Bench Press', weight: 0, goal_weight: 0, is_default: true },
-           { id: 'dl', name: 'Deadlift', weight: 0, goal_weight: 0, is_default: true }
+           { id: 'legs_sq_highbar', name: 'Barbell Back Squat', weight: 0, goal_weight: 0 },
+           { id: 'chest_bb_bench_flat', name: 'Flat Barbell Bench Press', weight: 0, goal_weight: 0 },
+           { id: 'back_deadlift_conventional', name: 'Conventional Deadlift', weight: 0, goal_weight: 0 }
        ];
        changed = true;
     }
@@ -121,7 +130,7 @@ const Profile: React.FC = () => {
     if ((formData.oneRepMaxes?.length || 0) >= 8) return;
     const name = language === 'zh' && ex.name_zh ? ex.name_zh : ex.name;
     const newRecord: OneRepMax = {
-      id: crypto.randomUUID(),
+      id: ex.id,
       name: name,
       weight: 0,
       goal_weight: 0
@@ -155,15 +164,27 @@ const Profile: React.FC = () => {
   };
 
   const get1RMName = (rec: OneRepMax) => {
-    if (rec.id === 'sq') return t('profile', 'squat');
-    if (rec.id === 'bp') return t('profile', 'bench');
-    if (rec.id === 'dl') return t('profile', 'deadlift');
+    // Try to find in library for latest translation
+    const match = exercises.find(e => e.id === rec.id);
+    if (match) {
+        return language === 'zh' && match.name_zh ? match.name_zh : match.name;
+    }
+    // Fallback to legacy checks or stored name
+    if (rec.id === 'sq' || rec.id === 'legs_sq_highbar') return t('profile', 'squat');
+    if (rec.id === 'bp' || rec.id === 'chest_bb_bench_flat') return t('profile', 'bench');
+    if (rec.id === 'dl' || rec.id === 'back_deadlift_conventional') return t('profile', 'deadlift');
+    
     return rec.name;
   };
 
   return (
     <div className="p-4 pb-24 min-h-screen relative">
-      <ProfileExercisePicker isOpen={showPicker} onClose={() => setShowPicker(false)} onSelect={handleAddRecord} />
+      <ProfileExercisePicker 
+        isOpen={showPicker} 
+        onClose={() => setShowPicker(false)} 
+        onSelect={handleAddRecord}
+        excludeIds={formData.oneRepMaxes?.map(r => r.id) || []}
+      />
 
       <div className="flex items-center gap-3 mb-6">
         <Link to="/" className="p-2 bg-surface border border-border rounded-full text-muted hover:text-white transition-colors">
@@ -311,11 +332,9 @@ const Profile: React.FC = () => {
                       />
                    </div>
                    <div className="col-span-1 flex justify-center">
-                      {!rec.is_default && (
-                         <button onClick={() => handleDeleteRecord(rec.id)} className="p-1.5 text-zinc-600 hover:text-red-500 transition-colors">
-                           <Trash2 size={12} />
-                         </button>
-                      )}
+                      <button onClick={() => handleDeleteRecord(rec.id)} className="p-1.5 text-zinc-600 hover:text-red-500 transition-colors">
+                        <Trash2 size={12} />
+                      </button>
                    </div>
                 </div>
              ))}

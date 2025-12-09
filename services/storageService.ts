@@ -1,4 +1,5 @@
 
+
 import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog, WorkoutPlan, OneRepMax } from '../types';
 import { supabase } from './supabase';
 
@@ -1111,11 +1112,11 @@ const SEED_EXERCISES: Exercise[] = [
   }
 ];
 
-// Default 1RMs
+// Default 1RMs with REAL Exercise IDs
 const DEFAULT_1RMS: OneRepMax[] = [
-  { id: 'sq', name: 'Squat', weight: 0, goal_weight: 0, is_default: true },
-  { id: 'bp', name: 'Bench Press', weight: 0, goal_weight: 0, is_default: true },
-  { id: 'dl', name: 'Deadlift', weight: 0, goal_weight: 0, is_default: true }
+  { id: 'legs_sq_highbar', name: 'Barbell Back Squat', weight: 0, goal_weight: 0 },
+  { id: 'chest_bb_bench_flat', name: 'Flat Barbell Bench Press', weight: 0, goal_weight: 0 },
+  { id: 'back_deadlift_conventional', name: 'Conventional Deadlift', weight: 0, goal_weight: 0 }
 ];
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -1184,7 +1185,21 @@ export const storage = {
     // Migration: Ensure new fields exist if loading an old profile
     if (!profile.oneRepMaxes) {
       profile.oneRepMaxes = DEFAULT_1RMS;
+    } else {
+      // 1RM ID MIGRATION logic for existing users with old keys
+      let needsMigration = false;
+      const migratedMaxes = profile.oneRepMaxes.map(rm => {
+        if (rm.id === 'sq') { needsMigration = true; return { ...rm, id: 'legs_sq_highbar', name: 'Barbell Back Squat' }; }
+        if (rm.id === 'bp') { needsMigration = true; return { ...rm, id: 'chest_bb_bench_flat', name: 'Flat Barbell Bench Press' }; }
+        if (rm.id === 'dl') { needsMigration = true; return { ...rm, id: 'back_deadlift_conventional', name: 'Conventional Deadlift' }; }
+        return rm;
+      });
+      if (needsMigration) {
+        profile.oneRepMaxes = migratedMaxes;
+        // Don't verify save here to avoid side effects during render, but data is corrected in memory
+      }
     }
+
     if (!profile.goals) {
       profile.goals = { target_weight: 0, target_body_fat: 0 };
     }
