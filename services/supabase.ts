@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Access environment variables via process.env as configured in vite.config.ts define
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Use import.meta.env which is the standard way in Vite to access environment variables
+// This avoids runtime errors where 'process' might be undefined in the browser
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Ensure both URL and Key are present before creating the client
 export const supabase = (supabaseUrl && supabaseKey)
