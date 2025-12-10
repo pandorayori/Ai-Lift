@@ -10,25 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      # 1. 拉取代码（在 GitHub Runner 上）
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # 2. 设置 Node 并安装依赖、构建
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # 3. 写 SSH 私钥
       - name: Copy SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.ECS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.ECS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan 114.55.136.150 >> ~/.ssh/known_hosts
 
-      - name: Disable Host Key Checking
+      # 4. 把 dist 上传到 ECS（覆盖原来的）
+      - name: Upload dist to ECS
         run: |
-          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+          scp -r dist/* root@114.55.136.150:/root/apps/ai-lift-frontend/dist/
 
-      - name: Deploy to ECS
+      # 5. 在 ECS 上重启 pm2
+      - name: Restart PM2 on ECS
         run: |
           ssh root@114.55.136.150 "
-            cd /root/apps/ai-lift-frontend &&
-            git pull &&
-            npm install --production &&
-            npm run build &&
-            pm2 restart ai-lift-frontend
+            cd /root/apps/ai-lift-frontend && \
+            pm2 reload ai-lift-frontend || pm2 serve dist 80 --spa --name ai-lift-frontend
           "
