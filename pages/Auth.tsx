@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { auth } from '../services/auth';
-import { Dumbbell, Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
-import { useAppContext } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { Dumbbell, Loader2, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 
 const Auth: React.FC = () => {
+  const { continueAsGuest } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,7 +93,16 @@ const Auth: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-4 text-center">
+           <button 
+             onClick={continueAsGuest}
+             className="text-sm text-zinc-400 hover:text-white transition-colors flex items-center justify-center gap-1 mx-auto"
+           >
+             Continue as Guest <ArrowRight size={14} />
+           </button>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-border text-center">
           <p className="text-sm text-muted">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
             <button 

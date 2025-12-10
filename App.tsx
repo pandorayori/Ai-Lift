@@ -12,11 +12,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
   
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center text-white">Loading...</div>;
   
-  if (!user) {
+  // Allow if user is logged in OR is in guest mode
+  if (!user && !isGuest) {
     return <Auth />;
   }
   
@@ -24,7 +25,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   
   return (
     <div className="min-h-screen bg-background text-white font-sans selection:bg-primary selection:text-background">
@@ -36,7 +37,7 @@ const AppRoutes = () => {
           <Route path="/workout" element={<ProtectedRoute><WorkoutLogger /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         </Routes>
-        {user && <Navigation />}
+        {(user || isGuest) && <Navigation />}
       </div>
     </div>
   );

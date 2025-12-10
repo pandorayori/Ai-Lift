@@ -6,7 +6,7 @@ import { supabase } from '../services/supabase';
 
 const Settings: React.FC = () => {
   const { profile, updateProfile, t, syncData, isSyncing } = useAppContext();
-  const { signOut, user } = useAuth();
+  const { signOut, user, isGuest } = useAuth();
   const [formData, setFormData] = useState(profile);
   const [isSaved, setIsSaved] = useState(false);
   const [hasSupabase, setHasSupabase] = useState(false);
@@ -53,17 +53,35 @@ const Settings: React.FC = () => {
            Account
         </h2>
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-sm text-white font-medium">{user?.email}</span>
-              <span className="text-xs text-muted">Signed In</span>
-            </div>
-            <button 
-              onClick={() => signOut()} 
-              className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
-            >
-              <LogOut size={16} />
-              Sign Out
-            </button>
+            {user ? (
+              <>
+                <div className="flex flex-col">
+                  <span className="text-sm text-white font-medium">{user.email}</span>
+                  <span className="text-xs text-muted">Signed In</span>
+                </div>
+                <button 
+                  onClick={() => signOut()} 
+                  className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex flex-col">
+                  <span className="text-sm text-white font-medium">Guest User</span>
+                  <span className="text-xs text-muted">Local Data Only</span>
+                </div>
+                <button 
+                  onClick={() => signOut()} 
+                  className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+                >
+                  <User size={16} />
+                  Sign In / Up
+                </button>
+              </>
+            )}
         </div>
       </section>
 
@@ -76,12 +94,12 @@ const Settings: React.FC = () => {
         <div className="bg-surface border border-border rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
              <div className="flex items-center gap-2">
-               <div className={`w-2.5 h-2.5 rounded-full ${hasSupabase ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></div>
+               <div className={`w-2.5 h-2.5 rounded-full ${hasSupabase && !isGuest ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-zinc-600'}`}></div>
                <span className="text-sm text-white font-medium">
-                 {hasSupabase ? 'Supabase Connected' : 'Not Configured'}
+                 {hasSupabase && !isGuest ? 'Supabase Connected' : 'Sync Inactive'}
                </span>
              </div>
-             {hasSupabase && (
+             {hasSupabase && !isGuest && (
                <button 
                 onClick={syncData} 
                 disabled={isSyncing}
@@ -92,9 +110,11 @@ const Settings: React.FC = () => {
              )}
           </div>
           <p className="text-xs text-muted leading-relaxed">
-            {hasSupabase 
-              ? "Your data is automatically backed up to the cloud. Click the refresh button to force a sync manually." 
-              : "Connect your Supabase database to enable cloud backup and multi-device sync."}
+            {isGuest 
+              ? "You are currently in Guest Mode. Your data is stored locally on this device. Sign in to enable cloud backup and sync."
+              : hasSupabase 
+                ? "Your data is automatically backed up to the cloud. Click the refresh button to force a sync manually." 
+                : "Connect your Supabase database to enable cloud backup and multi-device sync."}
           </p>
         </div>
       </section>

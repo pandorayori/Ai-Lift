@@ -7,6 +7,8 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  isGuest: boolean;
+  continueAsGuest: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -16,6 +18,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Persist guest mode so refresh doesn't kick user out
+  const [isGuest, setIsGuest] = useState<boolean>(() => {
+    return localStorage.getItem('ai_lift_guest_mode') === 'true';
+  });
 
   useEffect(() => {
     if (!supabase) {
@@ -27,6 +33,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        setIsGuest(false);
+        localStorage.removeItem('ai_lift_guest_mode');
+      }
       setLoading(false);
     });
 
@@ -36,6 +46,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } = auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        setIsGuest(false);
+        localStorage.removeItem('ai_lift_guest_mode');
+      }
       setLoading(false);
     });
 
@@ -46,10 +60,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await auth.signOut();
     setSession(null);
     setUser(null);
+    setIsGuest(false);
+    localStorage.removeItem('ai_lift_guest_mode');
+  };
+
+  const continueAsGuest = () => {
+    setIsGuest(true);
+    localStorage.setItem('ai_lift_guest_mode', 'true');
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, isGuest, continueAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -61,4 +82,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
