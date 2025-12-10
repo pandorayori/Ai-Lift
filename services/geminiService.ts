@@ -1,175 +1,62 @@
-
-import { WorkoutLog, UserProfile, Language, ThinkingLevel, WorkoutPlan, Equipment, PlanGoal, SplitType, TrainingLevel, HiddenParams, ChatMessage } from "../types";
-import { storage } from "./storageService";
-import { getPresetPlan } from "./offlinePlanner";
+import { GoogleGenAI } from "@google/genai";
+import { WorkoutLog, UserProfile, Language } from "../types";
 
 export const generateCoachingAdvice = async (
   query: string,
   recentLogs: WorkoutLog[],
-  profile: UserProfile,
-  thinkingLevel: ThinkingLevel = 'low',
-  history: ChatMessage[] = []
-): Promise<{ text: string, thought?: string }> => {
-  const lang: Language = (profile.language as Language) || "en";
-
-  // Build Context for System Instruction (Not user prompt)
-  const contextData = {
-    profile: {
-      height: profile.height,
-      weight: profile.weight,
-      age: profile.age,
-      gender: profile.gender,
-      goals: profile.goals
-    },
-    recent_workouts: recentLogs.slice(-3).map(log => ({
-      date: log.date.split("T")[0],
-      name: log.name,
-      volume: log.total_volume
-    }))
-  };
-
-  try {
-    const res = await fetch('/api/ai-coach', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: query,
-        history: history, // Send previous chat history
-        context: contextData, // Send user context
-        thinkingLevel: thinkingLevel, 
-        lang: lang,
-        mode: 'chat'
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Server Error');
-    
-    let rawText = data.text || "";
-    let thought = undefined;
-    let finalText = rawText;
-
-    const thinkMatch = rawText.match(/<thinking>([\s\S]*?)<\/thinking>/);
-    if (thinkMatch) {
-      thought = thinkMatch[1].trim();
-      finalText = rawText.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
-    }
-
-    return {
-       text: finalText || (lang === "zh" ? "无法生成建议" : "No advice generated"),
-       thought: thought
-    };
-
-  } catch (error) {
-    console.error("AI Coach API Error:", error);
-    return {
-      text: lang === "zh"
-      ? "抱歉，AI 服务暂时不可用。请稍后再试。"
-      : "Sorry, AI service is unavailable."
-    };
-  }
-};
-
-// ... (Rest of the file: generateWorkoutPlan remains unchanged)
-interface ProfessionalPlanConfig {
-  goal: PlanGoal;
-  level: TrainingLevel;
-  split: SplitType;
-  days: number;
-  equipment: Equipment[];
-  injuries: string[];
-  hiddenParams: HiddenParams;
-}
-
-export const generateWorkoutPlan = async (
-  config: ProfessionalPlanConfig,
   profile: UserProfile
-): Promise<{ plan: WorkoutPlan, source: 'ai' | 'preset' }> => {
+): Promise<string> => {
   const lang: Language = (profile.language as Language) || "en";
 
-  const basePreset = getPresetPlan(
-    { goal: config.goal, split: config.split, days: config.days }, 
-    profile
-  );
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const model = "gemini-2.5-flash";
 
-  const fullLibrary = storage.getExercises ? storage.getExercises() : [];
-  const minimalLibrary = fullLibrary.map((ex: any) => ({
-    id: ex.id,
-    name: lang === 'zh' && ex.name_zh ? ex.name_zh : ex.name,
-    muscle: ex.target_muscle,
-    sub_muscle: ex.sub_category || 'General',
-    type: ex.type
-  }));
+  const context = `
+    User Profile: Height ${profile.height}cm, Weight ${profile.weight}kg, Age ${profile.age || "Unknown"}, Gender ${profile.gender || "Unknown"}.
+    Recent Training History (Last 5 sessions):
+    ${recentLogs
+      .slice(-5)
+      .map(
+        (log) =>
+          `- Date: ${log.date.split("T")[0]}, Volume: ${log.total_volume.toFixed(
+            0
+          )}, Duration: ${log.duration_minutes}m`
+      )
+      .join("\n")}
+  `;
 
-  const payload = {
-    user_profile: {
-      weight: profile.weight,
-      height: profile.height,
-      age: profile.age,
-      gender: profile.gender,
-      level: config.level,
-      available_days: config.days
-    },
-    training_goal: config.goal,
-    split: config.split,
-    equipment: config.equipment,
-    constraints: {
-      injuries: config.injuries
-    },
-    hidden_params: config.hiddenParams,
-    base_template: basePreset.schedule,
-    exercise_library: minimalLibrary
-  };
+  const languageInstruction =
+    lang === "zh"
+      ? "You MUST reply in simplified Chinese (简体中文). Use professional but accessible fitness terminology suitable for a Chinese user."
+      : "Reply in English.";
+
+  const systemInstruction = `
+    You are an expert Strength & Conditioning Coach named "AI-Lift Coach".
+    Your goal is to help the user increase strength (1RM) and muscle mass (Hypertrophy).
+    Keep your answers concise, motivating, and data-driven.
+    Analyze the provided context to give specific advice.
+    If the user asks about a plateau, look at their volume.
+    Style: Professional, concise, minimalist.
+    ${languageInstruction}
+  `;
 
   try {
-    const res = await fetch('/api/ai-coach', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        payload: payload,
-        lang: lang,
-        mode: 'plan_generation'
-      }),
+    const response = await ai.models.generateContent({
+      model,
+      contents: `Context:\n${context}\n\nUser Query: ${query}`,
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+      },
     });
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Server Error');
-
-    const cleanText = data.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const result = JSON.parse(cleanText);
-    
-    const workoutPlan: WorkoutPlan = {
-      id: crypto.randomUUID(),
-      name: result.plan_meta?.goal + " (AI Customized)",
-      goal: config.goal,
-      level: config.level,
-      split: config.split,
-      days_per_week: config.days,
-      equipment: config.equipment,
-      injuries: config.injuries,
-      hidden_params: config.hiddenParams,
-      created_at: Date.now(),
-      schedule: result.week_schedule.map((d: any) => ({
-        day_number: d.day_number,
-        is_rest: d.is_rest,
-        focus: d.focus,
-        exercises: d.exercises ? d.exercises.map((e: any) => ({
-          exercise_id: e.exercise_id,
-          name: e.exercise_name,
-          sets: e.sets,
-          reps: e.reps, 
-          rest_sec: e.rest_sec || 60,
-          notes: e.notes
-        })) : []
-      })),
-      current_day_index: 0,
-      coach_notes: result.plan_meta?.coach_notes
-    };
-
-    return { plan: workoutPlan, source: 'ai' };
-
+    return response.text || (lang === "zh"
+      ? "我现在无法给出建议，请稍后再试。"
+      : "I couldn't analyze that right now. Please try again later.");
   } catch (error) {
-    console.error("AI Generation Failed, using Preset:", error);
-    return { plan: basePreset, source: 'preset' };
+    console.error("Gemini API Error:", error);
+    return lang === "zh"
+      ? "抱歉，无法连接到 AI 服务器。请检查网络或 API Key。"
+      : "Sorry, connection to AI server failed. Please check your network or API Key.";
   }
 };

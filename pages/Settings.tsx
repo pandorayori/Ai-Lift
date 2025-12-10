@@ -1,82 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { storage } from '../services/storageService';
-import { User, Globe, Cloud, RefreshCw, Database, LogOut, AlertTriangle, Trash2, X, ChevronRight, UserCog } from 'lucide-react';
+import { Save, User, Globe, CheckCircle2, Cloud, RefreshCw, Database, LogOut } from 'lucide-react';
 import { supabase } from '../services/supabase';
-import { Link } from 'react-router-dom';
 
 const Settings: React.FC = () => {
-  const { profile, updateProfile, t, syncData, isSyncing, refreshData } = useAppContext();
+  const { profile, updateProfile, t, syncData, isSyncing } = useAppContext();
   const { signOut, user } = useAuth();
+  const [formData, setFormData] = useState(profile);
+  const [isSaved, setIsSaved] = useState(false);
   const [hasSupabase, setHasSupabase] = useState(false);
 
-  // Modal States
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
   useEffect(() => {
+    setFormData(profile);
     setHasSupabase(!!supabase);
   }, [profile]);
 
-  const handleResetData = async () => {
-    await storage.clearAllUserData();
-    refreshData();
-    setShowResetConfirm(false);
-    window.location.reload();
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'height' || name === 'weight' || name === 'body_fat_percentage' || name === 'age' 
+        ? parseFloat(value) 
+        : value
+    }));
   };
 
-  const handleDeleteAccount = async () => {
-    await storage.clearAllUserData();
-    await signOut();
-    setShowDeleteConfirm(false);
+  const handleSave = () => {
+    updateProfile(formData);
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
+
+  const calculateBMI = () => {
+    if (formData.weight && formData.height) {
+      const heightM = formData.height / 100;
+      return (formData.weight / (heightM * heightM)).toFixed(1);
+    }
+    return '--';
   };
 
   return (
-    <div className="p-4 pb-24 min-h-screen relative">
+    <div className="p-4 pb-24 min-h-screen">
       <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
         <SettingsIcon className="text-muted" />
         {t('settings', 'title')}
       </h1>
 
-      {/* Edit Profile Link */}
-      <Link to="/profile" className="block mb-6">
-         <div className="bg-gradient-to-r from-zinc-800 to-zinc-900 border border-white/10 rounded-2xl p-5 flex items-center justify-between hover:border-primary/50 transition-all group">
-            <div className="flex items-center gap-4">
-               <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${profile.avatar || 'from-primary to-emerald-400'} flex items-center justify-center text-black font-bold text-xl`}>
-                 {profile.name[0]}
-               </div>
-               <div>
-                  <h3 className="text-white font-bold">{profile.name}</h3>
-                  <p className="text-xs text-muted mt-1 flex items-center gap-1 group-hover:text-primary transition-colors">
-                    <UserCog size={12} /> {t('settings', 'editProfile')}
-                  </p>
-               </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-500 group-hover:bg-primary group-hover:text-black transition-all">
-               <ChevronRight size={18} />
-            </div>
-         </div>
-      </Link>
-
       {/* Account Section */}
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
-          <User size={16} />
-          Account
+           Account
         </h2>
         <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <div className="text-sm text-white font-medium">{user?.email || "Guest User"}</div>
-            <div className="text-xs text-muted">{user ? "Logged in securely" : "Local session"}</div>
-          </div>
-          <button 
-            onClick={() => signOut()}
-            className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
-          >
-            <LogOut size={16} />
-            Sign Out
-          </button>
+            <div className="flex flex-col">
+              <span className="text-sm text-white font-medium">{user?.email}</span>
+              <span className="text-xs text-muted">Signed In</span>
+            </div>
+            <button 
+              onClick={() => signOut()} 
+              className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold"
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
         </div>
       </section>
 
@@ -137,72 +124,134 @@ const Settings: React.FC = () => {
         </div>
       </section>
 
-      {/* Danger Zone */}
-      <section>
-        <h2 className="text-sm font-semibold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <AlertTriangle size={16} />
-          {t('settings', 'dangerZone')}
+      {/* Personal Data Section */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+          <User size={16} />
+          {t('settings', 'personalData')}
         </h2>
-        <div className="bg-red-950/20 border border-red-900/50 rounded-xl p-4 space-y-3">
-           <button 
-            onClick={() => setShowResetConfirm(true)}
-            className="w-full py-3 bg-red-900/20 border border-red-800/50 text-red-400 rounded-lg hover:bg-red-900/40 hover:text-red-300 transition-colors flex items-center justify-center gap-2 text-sm font-bold"
-           >
-             <Database size={16} />
-             {t('settings', 'resetData')}
-           </button>
-           
-           <button 
-            onClick={() => setShowDeleteConfirm(true)}
-            className="w-full py-3 bg-transparent border border-red-800/30 text-red-500/70 rounded-lg hover:bg-red-900/10 hover:text-red-400 transition-colors flex items-center justify-center gap-2 text-xs font-mono"
-           >
-             <Trash2 size={14} />
-             {t('settings', 'deleteAccount')}
-           </button>
+        <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
+          
+          {/* Name */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">{t('settings', 'name')}</label>
+            <input 
+              type="text" 
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Gender */}
+            <div>
+               <label className="block text-xs text-gray-400 mb-1">{t('settings', 'gender')}</label>
+               <select 
+                name="gender"
+                value={formData.gender || 'Male'}
+                onChange={handleChange}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none appearance-none"
+               >
+                 <option value="Male">{t('settings', 'male')}</option>
+                 <option value="Female">{t('settings', 'female')}</option>
+                 <option value="Other">{t('settings', 'other')}</option>
+               </select>
+            </div>
+
+            {/* Age */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'age')}</label>
+              <input 
+                type="number" 
+                name="age"
+                value={formData.age || ''}
+                onChange={handleChange}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Height */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'height')}</label>
+              <input 
+                type="number" 
+                name="height"
+                value={formData.height}
+                onChange={handleChange}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
+              />
+            </div>
+             {/* Weight */}
+             <div>
+              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'weight')}</label>
+              <input 
+                type="number" 
+                name="weight"
+                value={formData.weight}
+                onChange={handleChange}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Body Fat */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'bodyFat')}</label>
+              <input 
+                type="number" 
+                name="body_fat_percentage"
+                value={formData.body_fat_percentage || ''}
+                onChange={handleChange}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
+              />
+            </div>
+             {/* BMI Display */}
+             <div>
+              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'bmi')}</label>
+              <div className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-3 py-2 text-muted cursor-not-allowed">
+                {calculateBMI()}
+              </div>
+            </div>
+          </div>
+
+          <button 
+            onClick={handleSave}
+            className={`w-full mt-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+              isSaved 
+              ? 'bg-green-500/20 text-green-500 border border-green-500/50' 
+              : 'bg-primary text-background hover:bg-opacity-90'
+            }`}
+          >
+            {isSaved ? (
+              <>
+                <CheckCircle2 size={18} /> {t('settings', 'saved')}
+              </>
+            ) : (
+              <>
+                <Save size={18} /> {t('settings', 'save')}
+              </>
+            )}
+          </button>
         </div>
       </section>
 
-      {/* Confirmation Modal Component */}
-      {(showResetConfirm || showDeleteConfirm) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="bg-surface border border-red-500/30 w-full max-w-sm rounded-2xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.2)] relative">
-              <button 
-                onClick={() => { setShowResetConfirm(false); setShowDeleteConfirm(false); }}
-                className="absolute top-4 right-4 text-zinc-500 hover:text-white"
-              >
-                <X size={20} />
-              </button>
-
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
-                <AlertTriangle size={32} className="text-red-500" />
-              </div>
-
-              <h2 className="text-xl font-bold text-white text-center mb-2">
-                {showResetConfirm ? t('settings', 'confirmResetTitle') : t('settings', 'confirmDeleteTitle')}
-              </h2>
-              
-              <p className="text-muted text-sm text-center mb-6 leading-relaxed">
-                {showResetConfirm ? t('settings', 'confirmResetBody') : t('settings', 'confirmDeleteBody')}
-              </p>
-
-              <div className="space-y-3">
-                <button 
-                  onClick={showResetConfirm ? handleResetData : handleDeleteAccount}
-                  className="w-full py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
-                >
-                  {t('settings', 'confirm')}
-                </button>
-                <button 
-                  onClick={() => { setShowResetConfirm(false); setShowDeleteConfirm(false); }}
-                  className="w-full py-3 bg-transparent text-zinc-400 font-medium rounded-xl hover:text-white transition-colors"
-                >
-                  {t('settings', 'cancel')}
-                </button>
-              </div>
-           </div>
+      {/* Danger Zone */}
+      <section>
+        <div className="p-4 border border-red-900/30 bg-red-900/10 rounded-xl">
+           <h3 className="text-red-500 text-sm font-bold mb-2 flex items-center gap-2">
+             <Database size={14} />
+             {t('settings', 'dangerZone')}
+           </h3>
+           <button className="text-xs text-red-400 hover:text-red-300 underline">
+             {t('settings', 'resetData')}
+           </button>
         </div>
-      )}
-
+      </section>
     </div>
   );
 };

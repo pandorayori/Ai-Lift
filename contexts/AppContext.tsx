@@ -22,53 +22,53 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   
-  // Initialize state. Note: storage.getProfile() might return default first, 
-  // but we refresh when user changes.
-  const [profile, setProfileState] = useState<UserProfile>(storage.getProfile());
+  // Current active User ID (or 'temp' if guest)
+  const userId = user ? user.id : 'temp';
+
+  const [profile, setProfileState] = useState<UserProfile>({ 
+    id: userId, 
+    name: 'User', 
+    weight: 0, 
+    height: 0, 
+    language: 'en' 
+  });
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Load data from local storage (fast path)
   const refreshData = useCallback(() => {
-    setProfileState(storage.getProfile());
-    setLogs(storage.getWorkoutLogs());
-    setExercises(storage.getExercises());
-  }, []);
-
-  // Watch for user changes to update storage context
-  useEffect(() => {
-    if (user) {
-      storage.setStorageUser(user.id);
-    } else {
-      storage.setStorageUser('default_user');
-    }
+    const p = storage.getProfile(userId);
+    const l = storage.getWorkoutLogs(userId);
+    const e = storage.getExercises();
     
-    // Refresh local data immediately based on the new user context
+    setProfileState(p);
+    setLogs(l);
+    setExercises(e);
+  }, [userId]);
+
+  // Initial load
+  useEffect(() => {
     refreshData();
+  }, [refreshData]);
 
-    // Trigger cloud sync if user is logged in
-    if (user) {
-      syncData();
+  // Sync with Supabase when User ID changes (e.g., login)
+  useEffect(() => {
+    if (userId !== 'temp') {
+      const initSync = async () => {
+        setIsSyncing(true);
+        await storage.syncFromSupabase(userId);
+        refreshData();
+        setIsSyncing(false);
+      };
+      initSync();
     }
-  }, [user, refreshData]);
+  }, [userId, refreshData]);
 
-  const syncData = useCallback(async () => {
-    if (!user) return;
-    setIsSyncing(true);
-    try {
-      await storage.syncFromSupabase();
-      refreshData();
-    } catch (error) {
-      console.error("Sync failed", error);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [user, refreshData]);
-
-  const updateProfile = (updated: Partial<UserProfile>) => {
+  const updateProfile = async (updated: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updated };
-    storage.saveProfile(newProfile); 
     setProfileState(newProfile);
+    await storage.saveProfile(userId, newProfile);
   };
 
   const setLanguage = (lang: Language) => {
@@ -76,17 +76,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const t = (section: keyof typeof translations.en, key: string): string => {
-    const langData = translations[profile.language][section];
+    const lang = (profile.language as Language) || 'en';
     // @ts-ignore
-    return langData ? langData[key] || key : key;
+    return translations[lang][section]?.[key] || translations['en'][section]?.[key] || key;
+  };
+
+  const syncData = async () => {
+    if (userId === 'temp') return;
+    setIsSyncing(true);
+    await storage.syncFromSupabase(userId);
+    refreshData();
+    setIsSyncing(false);
   };
 
   return (
-    <AppContext.Provider value={{ 
-      profile, 
-      updateProfile, 
-      language: profile.language, 
-      setLanguage, 
+    <AppContext.Provider value={{
+      profile,
+      updateProfile,
+      language: (profile.language as Language) || 'en',
+      setLanguage,
       t,
       logs,
       exercises,
