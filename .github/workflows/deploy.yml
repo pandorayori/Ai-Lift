@@ -1,0 +1,34 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Copy SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ECS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Disable Host Key Checking
+        run: |
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+
+      - name: Deploy to ECS
+        run: |
+          ssh root@114.55.136.150 "
+            cd /root/apps/ai-lift-frontend &&
+            git pull &&
+            npm install --production &&
+            npm run build &&
+            pm2 restart ai-lift-frontend
+          "
