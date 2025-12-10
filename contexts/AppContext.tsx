@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { UserProfile, Language, WorkoutLog, Exercise } from '../types';
 import { storage } from '../services/storageService';
 import { translations } from '../utils/i18n';
-import { useAuth } from './AuthContext';
 
 interface AppContextType {
   profile: UserProfile;
@@ -13,17 +12,13 @@ interface AppContextType {
   logs: WorkoutLog[];
   exercises: Exercise[];
   refreshData: () => void;
-  syncData: () => Promise<void>;
-  isSyncing: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  
-  // Current active User ID (or 'temp' if guest)
-  const userId = user ? user.id : 'temp';
+  // Hardcoded ID for local-only mode
+  const userId = 'local_user';
 
   const [profile, setProfileState] = useState<UserProfile>({ 
     id: userId, 
@@ -34,7 +29,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Load data from local storage (fast path)
   const refreshData = useCallback(() => {
@@ -52,23 +46,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshData();
   }, [refreshData]);
 
-  // Sync with Supabase when User ID changes (e.g., login)
-  useEffect(() => {
-    if (userId !== 'temp') {
-      const initSync = async () => {
-        setIsSyncing(true);
-        await storage.syncFromSupabase(userId);
-        refreshData();
-        setIsSyncing(false);
-      };
-      initSync();
-    }
-  }, [userId, refreshData]);
-
   const updateProfile = async (updated: Partial<UserProfile>) => {
     const newProfile = { ...profile, ...updated };
     setProfileState(newProfile);
-    await storage.saveProfile(userId, newProfile);
+    storage.saveProfile(userId, newProfile);
   };
 
   const setLanguage = (lang: Language) => {
@@ -81,14 +62,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return translations[lang][section]?.[key] || translations['en'][section]?.[key] || key;
   };
 
-  const syncData = async () => {
-    if (userId === 'temp') return;
-    setIsSyncing(true);
-    await storage.syncFromSupabase(userId);
-    refreshData();
-    setIsSyncing(false);
-  };
-
   return (
     <AppContext.Provider value={{
       profile,
@@ -98,9 +71,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       t,
       logs,
       exercises,
-      refreshData,
-      syncData,
-      isSyncing
+      refreshData
     }}>
       {children}
     </AppContext.Provider>

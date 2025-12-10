@@ -1,5 +1,4 @@
 import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog } from '../types';
-import { supabase } from './supabase';
 
 // --- Constants & Seed Data ---
 
@@ -756,7 +755,7 @@ const SEED_EXERCISES: Exercise[] = [
 ];
 
 const DEFAULT_PROFILE: UserProfile = {
-  id: 'temp',
+  id: 'local_user',
   name: 'Lifter',
   weight: 70,
   height: 175,
@@ -788,54 +787,12 @@ const setLocal = (key: string, val: any) => {
 // --- Storage Service ---
 
 export const storage = {
-  /**
-   * Migrate data from 'temp' user (guest) to actual authenticated user
-   * This runs when a user logs in for the first time on a device with existing guest data.
-   */
-  migrateLegacyData: (userId: string) => {
-    // Keys for Guest (legacy or temp)
-    const guestProfileKey = getUserKey(BASE_KEYS.PROFILE, 'temp');
-    const guestLogsKey = getUserKey(BASE_KEYS.LOGS, 'temp');
-    
-    // Keys for New User
-    const userProfileKey = getUserKey(BASE_KEYS.PROFILE, userId);
-    const userLogsKey = getUserKey(BASE_KEYS.LOGS, userId);
-
-    // If new user has NO local data, but Guest HAS data, migrate it.
-    if (!localStorage.getItem(userProfileKey) && localStorage.getItem(guestProfileKey)) {
-      console.log('Migrating guest profile to user:', userId);
-      const guestProfile = getLocal(guestProfileKey, DEFAULT_PROFILE);
-      setLocal(userProfileKey, { ...guestProfile, id: userId });
-    }
-
-    if (!localStorage.getItem(userLogsKey) && localStorage.getItem(guestLogsKey)) {
-       console.log('Migrating guest logs to user:', userId);
-       const guestLogs = getLocal(guestLogsKey, []);
-       const migratedLogs = guestLogs.map((l: any) => ({ ...l, user_id: userId }));
-       setLocal(userLogsKey, migratedLogs);
-    }
-  },
-
   getProfile: (userId: string): UserProfile => {
     return getLocal(getUserKey(BASE_KEYS.PROFILE, userId), { ...DEFAULT_PROFILE, id: userId });
   },
   
-  saveProfile: async (userId: string, profile: UserProfile) => {
-    // 1. Save Local
+  saveProfile: (userId: string, profile: UserProfile) => {
     setLocal(getUserKey(BASE_KEYS.PROFILE, userId), profile);
-
-    // 2. Save Remote (if Supabase is connected)
-    if (supabase && userId !== 'temp') {
-      try {
-        await supabase.from('profiles').upsert({
-          id: userId,
-          data: profile,
-          updated_at: new Date().toISOString()
-        });
-      } catch (e) {
-        console.error("Supabase profile save error", e);
-      }
-    }
   },
 
   getExercises: (): Exercise[] => {
@@ -852,10 +809,8 @@ export const storage = {
     return getLocal(getUserKey(BASE_KEYS.LOGS, userId), []);
   },
 
-  saveWorkoutLog: async (userId: string, log: WorkoutLog) => {
+  saveWorkoutLog: (userId: string, log: WorkoutLog) => {
     const key = getUserKey(BASE_KEYS.LOGS, userId);
-    
-    // 1. Save Local
     const current = getLocal<WorkoutLog[]>(key, []);
     const index = current.findIndex(l => l.id === log.id);
     let updatedLogs;
@@ -866,99 +821,5 @@ export const storage = {
       updatedLogs = [...current, log];
     }
     setLocal(key, updatedLogs);
-
-    // 2. Save Remote
-    if (supabase && userId !== 'temp') {
-      try {
-        await supabase.from('workout_logs').upsert({
-          id: log.id,
-          user_id: userId,
-          date: new Date(log.date).toISOString(),
-          data: log
-        });
-      } catch (e) {
-         console.error("Supabase log save error", e);
-      }
-    }
-  },
-
-  /**
-   * Sync logic: 
-   * 1. Check if remote has data.
-   * 2. If remote has data, overwrite local (simple sync strategy for v1).
-   * 3. If remote is empty but local has data (just migrated), push local to remote.
-   */
-  syncFromSupabase: async (userId: string) => {
-    if (!supabase || !userId || userId === 'temp') return;
-
-    // Run local migration first to ensure 'guest' data moves to 'user' slot locally
-    storage.migrateLegacyData(userId);
-
-    const userProfileKey = getUserKey(BASE_KEYS.PROFILE, userId);
-    const userLogsKey = getUserKey(BASE_KEYS.LOGS, userId);
-
-    try {
-      // --- Profile Sync ---
-      const { data: remoteProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (remoteProfile) {
-        // Remote exists -> update local
-        setLocal(userProfileKey, remoteProfile.data);
-      } else if (!remoteProfile) {
-        // Remote empty -> push local (Initial Cloud Sync)
-        const localProfile = getLocal(userProfileKey, { ...DEFAULT_PROFILE, id: userId });
-        await supabase.from('profiles').upsert({
-          id: userId,
-          data: localProfile
-        });
-      }
-
-      // --- Logs Sync ---
-      const { data: remoteLogs } = await supabase
-        .from('workout_logs')
-        .select('*')
-        .eq('user_id', userId);
-
-      const localLogs = getLocal<WorkoutLog[]>(userLogsKey, []);
-
-      if (remoteLogs && remoteLogs.length > 0) {
-        // Remote exists -> Merge/Overwrite local
-        // Using a Map to deduplicate by ID, preferring Remote version
-        const logMap = new Map<string, WorkoutLog>();
-        
-        // Add local first
-        localLogs.forEach(l => logMap.set(l.id, l));
-        
-        // Overwrite with remote
-        remoteLogs.forEach(r => {
-           if (r.data) logMap.set(r.id, r.data);
-        });
-
-        const mergedList = Array.from(logMap.values());
-        // Sort by date descending for storage/display
-        mergedList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        setLocal(userLogsKey, mergedList);
-        
-      } else if ((!remoteLogs || remoteLogs.length === 0) && localLogs.length > 0) {
-        // Remote empty, Local has data -> Push all to Cloud
-        console.log("Pushing local logs to Supabase...");
-        const payload = localLogs.map(log => ({
-          id: log.id,
-          user_id: userId,
-          date: new Date(log.date).toISOString(),
-          data: log
-        }));
-
-        const { error } = await supabase.from('workout_logs').upsert(payload);
-        if (error) console.error("Migration failed", error);
-      }
-
-    } catch (err) {
-      console.error("Sync error:", err);
-    }
   }
 };
