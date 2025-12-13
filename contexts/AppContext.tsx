@@ -25,7 +25,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     name: 'User', 
     weight: 0, 
     height: 0, 
-    language: 'en' 
+    language: 'en',
+    strength_records: []
   });
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);

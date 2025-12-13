@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import Navigation from './components/Navigation';
@@ -6,6 +7,8 @@ import ExerciseLibrary from './pages/ExerciseLibrary';
 import AICoach from './pages/AICoach';
 import WorkoutLogger from './pages/WorkoutLogger';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import SmartPlan from './pages/SmartPlan';
 import { AppProvider } from './contexts/AppContext';
 
 const AppRoutes = () => {
@@ -18,6 +21,8 @@ const AppRoutes = () => {
           <Route path="/coach" element={<AICoach />} />
           <Route path="/workout" element={<WorkoutLogger />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/smart-plan" element={<SmartPlan />} />
         </Routes>
         <Navigation />
       </div>

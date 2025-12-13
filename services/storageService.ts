@@ -1,3 +1,4 @@
+
 import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog } from '../types';
 
 // --- Constants & Seed Data ---
@@ -759,7 +760,12 @@ const DEFAULT_PROFILE: UserProfile = {
   name: 'Lifter',
   weight: 70,
   height: 175,
-  language: 'en'
+  language: 'en',
+  strength_records: [
+    { exercise_id: 'chest_bb_flat_bench', one_rep_max: 0 },
+    { exercise_id: 'legs_bb_squat', one_rep_max: 0 },
+    { exercise_id: 'back_bb_deadlift', one_rep_max: 0 },
+  ]
 };
 
 // --- Helper Functions ---
@@ -788,7 +794,9 @@ const setLocal = (key: string, val: any) => {
 
 export const storage = {
   getProfile: (userId: string): UserProfile => {
-    return getLocal(getUserKey(BASE_KEYS.PROFILE, userId), { ...DEFAULT_PROFILE, id: userId });
+    // Merge defaults to ensure new fields (like strength_records) exist for old users
+    const stored = getLocal(getUserKey(BASE_KEYS.PROFILE, userId), {});
+    return { ...DEFAULT_PROFILE, ...stored, id: userId };
   },
   
   saveProfile: (userId: string, profile: UserProfile) => {

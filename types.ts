@@ -1,3 +1,4 @@
+
 export enum ExerciseType {
   BARBELL = 'Barbell',
   DUMBBELL = 'Dumbbell',
@@ -55,6 +56,11 @@ export interface WorkoutLog {
 export type Language = 'en' | 'zh';
 export type Gender = 'Male' | 'Female' | 'Other';
 
+export interface StrengthRecord {
+  exercise_id: string;
+  one_rep_max: number;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -64,10 +70,52 @@ export interface UserProfile {
   age?: number;
   gender?: Gender;
   language: Language;
+  strength_records: StrengthRecord[];
 }
 
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: number;
+}
+
+// --- Smart Plan Generator Types ---
+
+export interface PlanGenerationParams {
+  gender: string;
+  age: number;
+  height: number;
+  weight: number;
+  experience: 'Beginner' | 'Intermediate' | 'Advanced';
+  goals: string[];
+  split: string;
+  frequency: number;
+  duration: number;
+  injuries: string[];
+}
+
+export interface GeneratedExerciseItem {
+  name: string;
+  sets: number;
+  reps: string;
+  rest: string;
+}
+
+export interface GeneratedDailyPlan {
+  day: string;
+  focus: string;
+  exercises: GeneratedExerciseItem[];
+}
+
+export interface GeneratedPlan {
+  plan_meta: {
+    goal: string;
+    split: string;
+    weekly_frequency: number;
+    session_duration: string;
+    level: string;
+  };
+  weekly_plan: GeneratedDailyPlan[];
+  notes: string[];
+  fallback_used: boolean;
 }

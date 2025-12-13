@@ -1,7 +1,9 @@
+
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Zap, Scale, Calendar } from 'lucide-react';
+import { Activity, Zap, Scale, Calendar, BrainCircuit, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
+import { Link } from 'react-router-dom';
 
 const StatCard = ({ title, value, unit, icon: Icon, colorClass }: any) => (
   <div className="bg-surface border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
@@ -40,10 +42,29 @@ const Dashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-white">{t('dashboard', 'greeting')}, {profile.name.split(' ')[0]}</h1>
           <p className="text-muted text-sm">{t('dashboard', 'subtitle')}</p>
         </div>
-        <div className="w-10 h-10 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-full flex items-center justify-center text-white font-bold border border-zinc-600 shadow">
+        <Link to="/profile" className="w-10 h-10 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-full flex items-center justify-center text-white font-bold border border-zinc-600 shadow hover:border-primary transition-colors cursor-pointer">
             {profile.name[0]}
-        </div>
+        </Link>
       </header>
+
+      {/* Smart Plan Generator Card - New Feature */}
+      <Link to="/smart-plan" className="block relative overflow-hidden bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 rounded-xl p-5 group hover:border-primary transition-all shadow-md">
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+           <BrainCircuit size={80} className="text-primary rotate-12" />
+        </div>
+        <div className="relative z-10 flex justify-between items-center">
+           <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <BrainCircuit size={20} className="text-primary" />
+                {t('dashboard', 'smartPlan')}
+              </h2>
+              <p className="text-xs text-gray-400 mt-1 max-w-[200px]">{t('dashboard', 'smartPlanDesc')}</p>
+           </div>
+           <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-colors">
+              <ChevronRight size={18} />
+           </div>
+        </div>
+      </Link>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3">

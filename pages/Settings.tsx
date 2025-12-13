@@ -1,39 +1,11 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { Save, User, Globe, CheckCircle2, Database } from 'lucide-react';
+import { Globe, Database, User, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Settings: React.FC = () => {
   const { profile, updateProfile, t } = useAppContext();
-  const [formData, setFormData] = useState(profile);
-  const [isSaved, setIsSaved] = useState(false);
-
-  useEffect(() => {
-    setFormData(profile);
-  }, [profile]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'height' || name === 'weight' || name === 'body_fat_percentage' || name === 'age' 
-        ? parseFloat(value) 
-        : value
-    }));
-  };
-
-  const handleSave = () => {
-    updateProfile(formData);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
-  };
-
-  const calculateBMI = () => {
-    if (formData.weight && formData.height) {
-      const heightM = formData.height / 100;
-      return (formData.weight / (heightM * heightM)).toFixed(1);
-    }
-    return '--';
-  };
 
   return (
     <div className="p-4 pb-24 min-h-screen">
@@ -41,6 +13,28 @@ const Settings: React.FC = () => {
         <SettingsIcon className="text-muted" />
         {t('settings', 'title')}
       </h1>
+
+      {/* Profile Link Section */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+          <User size={16} />
+          {t('settings', 'personalData')}
+        </h2>
+        <Link to="/profile" className="block bg-surface border border-border rounded-xl p-4 hover:border-zinc-600 transition-colors group">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-zinc-700 to-zinc-800 rounded-full flex items-center justify-center text-white font-bold border border-zinc-600 text-lg">
+                {profile.name[0]}
+              </div>
+              <div>
+                <h3 className="text-white font-medium text-lg">{t('settings', 'profile')}</h3>
+                <p className="text-xs text-muted mt-1">{t('settings', 'profileDesc')}</p>
+              </div>
+            </div>
+            <ChevronRight className="text-zinc-600 group-hover:text-primary transition-colors" size={20} />
+          </div>
+        </Link>
+      </section>
 
       {/* Language Section */}
       <section className="mb-6">
@@ -64,122 +58,6 @@ const Settings: React.FC = () => {
               中文
             </button>
           </div>
-        </div>
-      </section>
-
-      {/* Personal Data Section */}
-      <section className="mb-6">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
-          <User size={16} />
-          {t('settings', 'personalData')}
-        </h2>
-        <div className="bg-surface border border-border rounded-xl p-5 space-y-4">
-          
-          {/* Name */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">{t('settings', 'name')}</label>
-            <input 
-              type="text" 
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Gender */}
-            <div>
-               <label className="block text-xs text-gray-400 mb-1">{t('settings', 'gender')}</label>
-               <select 
-                name="gender"
-                value={formData.gender || 'Male'}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none appearance-none"
-               >
-                 <option value="Male">{t('settings', 'male')}</option>
-                 <option value="Female">{t('settings', 'female')}</option>
-                 <option value="Other">{t('settings', 'other')}</option>
-               </select>
-            </div>
-
-            {/* Age */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'age')}</label>
-              <input 
-                type="number" 
-                name="age"
-                value={formData.age || ''}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Height */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'height')}</label>
-              <input 
-                type="number" 
-                name="height"
-                value={formData.height}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-             {/* Weight */}
-             <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'weight')}</label>
-              <input 
-                type="number" 
-                name="weight"
-                value={formData.weight}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Body Fat */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'bodyFat')}</label>
-              <input 
-                type="number" 
-                name="body_fat_percentage"
-                value={formData.body_fat_percentage || ''}
-                onChange={handleChange}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-primary focus:outline-none"
-              />
-            </div>
-             {/* BMI Display */}
-             <div>
-              <label className="block text-xs text-gray-400 mb-1">{t('settings', 'bmi')}</label>
-              <div className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-lg px-3 py-2 text-muted cursor-not-allowed">
-                {calculateBMI()}
-              </div>
-            </div>
-          </div>
-
-          <button 
-            onClick={handleSave}
-            className={`w-full mt-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-              isSaved 
-              ? 'bg-green-500/20 text-green-500 border border-green-500/50' 
-              : 'bg-primary text-background hover:bg-opacity-90'
-            }`}
-          >
-            {isSaved ? (
-              <>
-                <CheckCircle2 size={18} /> {t('settings', 'saved')}
-              </>
-            ) : (
-              <>
-                <Save size={18} /> {t('settings', 'save')}
-              </>
-            )}
-          </button>
         </div>
       </section>
 

@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     nav: {
@@ -16,7 +17,9 @@ export const translations = {
       est1rm: "Est. 1RM",
       volumeTrend: "Volume Trend",
       consistency: "Consistency",
-      last3months: "Last 3 months"
+      last3months: "Last 3 months",
+      smartPlan: "Smart Plan Generator",
+      smartPlanDesc: "Get a custom AI-built routine."
     },
     library: {
       title: "Exercise Library",
@@ -49,6 +52,8 @@ export const translations = {
       general: "General",
       language: "Language",
       personalData: "Personal Data",
+      profile: "Profile",
+      profileDesc: "Manage your body stats and strength records",
       name: "Name",
       gender: "Gender",
       male: "Male",
@@ -63,6 +68,50 @@ export const translations = {
       saved: "Saved!",
       dangerZone: "Danger Zone",
       resetData: "Reset All Data"
+    },
+    profile: {
+      title: "Your Profile",
+      bodyStats: "Body Stats",
+      strengthStats: "Strength Records (1RM)",
+      strengthDesc: "Track your one-rep max for key lifts.",
+      addRecord: "Add Record",
+      maxReached: "Max 6 records",
+      selectExercise: "Select Exercise"
+    },
+    smartPlan: {
+      title: "Smart Plan Generator",
+      subtitle: "AI-Powered Custom Routine",
+      step1: "Basics & Goal",
+      step2: "Schedule & Split",
+      step3: "Injuries",
+      generate: "Generate Plan",
+      generating: "Designing your plan...",
+      experience: "Experience Level",
+      beginner: "Beginner",
+      intermediate: "Intermediate",
+      advanced: "Advanced",
+      goals: "Goals",
+      muscle: "Muscle Gain",
+      fatLoss: "Fat Loss",
+      strength: "Strength",
+      power: "Power/Athletic",
+      split: "Training Split",
+      fullBody: "Full Body",
+      upperLower: "Upper / Lower",
+      ppl: "Push / Pull / Legs",
+      custom: "Custom",
+      frequency: "Frequency (days/week)",
+      duration: "Duration (mins)",
+      injuries: "Injuries / Limitations",
+      noInjuries: "No Injuries",
+      shoulder: "Shoulder",
+      knee: "Knee",
+      back: "Lower Back",
+      elbow: "Elbow",
+      notes: "Coach Notes",
+      backBtn: "Back",
+      retry: "Try Again",
+      error: "Could not generate plan. Please try again."
     }
   },
   zh: {
@@ -82,7 +131,9 @@ export const translations = {
       est1rm: "估算极限",
       volumeTrend: "容量趋势",
       consistency: "训练频率",
-      last3months: "最近3个月"
+      last3months: "最近3个月",
+      smartPlan: "智能计划生成",
+      smartPlanDesc: "AI 定制专属训练方案"
     },
     library: {
       title: "动作库",
@@ -115,6 +166,8 @@ export const translations = {
       general: "通用",
       language: "语言",
       personalData: "身体数据",
+      profile: "个人资料",
+      profileDesc: "管理身体数据和力量记录",
       name: "昵称",
       gender: "性别",
       male: "男",
@@ -129,6 +182,50 @@ export const translations = {
       saved: "已保存!",
       dangerZone: "危险区域",
       resetData: "重置所有数据"
+    },
+    profile: {
+      title: "个人资料",
+      bodyStats: "身体数据",
+      strengthStats: "力量数据 (1RM)",
+      strengthDesc: "记录关键动作的单次最大重量",
+      addRecord: "添加项目",
+      maxReached: "最多6项",
+      selectExercise: "选择动作"
+    },
+    smartPlan: {
+      title: "智能计划生成",
+      subtitle: "AI 驱动的定制训练",
+      step1: "基础与目标",
+      step2: "日程与分化",
+      step3: "伤病情况",
+      generate: "生成计划",
+      generating: "正在设计您的计划...",
+      experience: "训练经验",
+      beginner: "新手",
+      intermediate: "进阶",
+      advanced: "高阶",
+      goals: "训练目标",
+      muscle: "增肌",
+      fatLoss: "减脂",
+      strength: "力量提升",
+      power: "爆发力/运动表现",
+      split: "分化方式",
+      fullBody: "全身训练",
+      upperLower: "上下肢分化",
+      ppl: "推 / 拉 / 腿",
+      custom: "自定义",
+      frequency: "每周频率 (天)",
+      duration: "单次时长 (分钟)",
+      injuries: "伤病 / 受限",
+      noInjuries: "无明显伤病",
+      shoulder: "肩部",
+      knee: "膝盖",
+      back: "下背/腰",
+      elbow: "手肘",
+      notes: "教练备注",
+      backBtn: "返回",
+      retry: "重试",
+      error: "无法生成计划，请重试。"
     }
   }
 };
