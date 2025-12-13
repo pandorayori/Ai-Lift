@@ -1,8 +1,9 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { WorkoutLog, UserProfile, Language, PlanGenerationParams, GeneratedPlan } from "../types";
+import { WorkoutLog, UserProfile, Language, PlanGenerationParams, GeneratedPlan } from "../types.js";
 
-const API_KEY = process.env.API_KEY;
+// Prefer the documented GEMINI_API_KEY name but fall back to API_KEY for legacy setups
+const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY;
 
 export const generateCoachingAdvice = async (
   query: string,

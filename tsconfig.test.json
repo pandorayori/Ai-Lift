@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist-tests",
+    "types": ["node"],
+    "sourceMap": false,
+    "allowImportingTsExtensions": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": [
+    "services/**/*.ts",
+    "tests/**/*.ts",
+    "types.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist-tests",
+    "services/auth.ts",
+    "services/supabase.ts"
+  ]
+}
