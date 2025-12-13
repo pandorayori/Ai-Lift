@@ -1,5 +1,5 @@
 
-import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog, GeneratedPlan } from '../types';
+import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog, GeneratedPlan } from '../types.js';
 
 // --- Constants & Seed Data ---
 
