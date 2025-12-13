@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { generateWorkoutPlan } from '../services/geminiService';
 import { PlanGenerationParams, GeneratedPlan, Language } from '../types';
-import { ArrowLeft, BrainCircuit, Check, Activity, Clock, Calendar, AlertCircle, Dumbbell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, BrainCircuit, Check, Activity, Clock, Calendar, AlertCircle, Dumbbell, PlayCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const STEPS = 3;
 
 const SmartPlan: React.FC = () => {
-  const { profile, t } = useAppContext();
+  const { profile, t, saveActivePlan } = useAppContext();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
@@ -43,6 +44,13 @@ const SmartPlan: React.FC = () => {
     const plan = await generateWorkoutPlan(formData, profile.language as Language);
     setGeneratedPlan(plan);
     setIsLoading(false);
+  };
+
+  const handleAdoptPlan = () => {
+    if (generatedPlan) {
+      saveActivePlan(generatedPlan);
+      navigate('/workout');
+    }
   };
 
   // --- Components ---
@@ -195,7 +203,7 @@ const SmartPlan: React.FC = () => {
     if (!generatedPlan) return null;
 
     return (
-      <div className="animate-in fade-in zoom-in-95 duration-500 pb-20">
+      <div className="animate-in fade-in zoom-in-95 duration-500">
         {/* Meta Header */}
         <div className="bg-surface border border-border rounded-xl p-4 mb-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-3 opacity-10">
@@ -233,7 +241,7 @@ const SmartPlan: React.FC = () => {
         )}
 
         {/* Weekly Plan */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-6">
            {generatedPlan.weekly_plan.map((day, idx) => (
              <div key={idx} className="bg-surface border border-border rounded-xl overflow-hidden">
                <div className="bg-zinc-900/50 p-3 border-b border-border flex justify-between items-center">
@@ -262,18 +270,28 @@ const SmartPlan: React.FC = () => {
            ))}
         </div>
 
-        <button 
-          onClick={() => { setGeneratedPlan(null); setStep(1); }}
-          className="w-full mt-6 py-3 border border-zinc-700 text-zinc-400 hover:text-white rounded-xl font-medium transition-colors"
-        >
-          {t('smartPlan', 'retry')}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-3 flex-col sm:flex-row">
+            <button 
+            onClick={handleAdoptPlan}
+            className="flex-1 py-4 bg-primary text-background font-bold rounded-xl hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+            >
+            <PlayCircle size={20} />
+            Start Training Plan
+            </button>
+            <button 
+            onClick={() => { setGeneratedPlan(null); setStep(1); }}
+            className="py-4 px-6 border border-zinc-700 text-zinc-400 hover:text-white rounded-xl font-medium transition-colors"
+            >
+            {t('smartPlan', 'retry')}
+            </button>
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="p-4 min-h-screen">
+    <div className="p-4 pb-32 min-h-screen">
       {/* Header */}
       {!generatedPlan && (
         <header className="flex items-center gap-3 mb-6">
@@ -298,7 +316,7 @@ const SmartPlan: React.FC = () => {
       ) : generatedPlan ? (
         renderResult()
       ) : (
-        <div className="flex flex-col h-[calc(100vh-120px)]">
+        <div className="flex flex-col h-full">
            <div className="flex-1">
              {step === 1 && renderStep1()}
              {step === 2 && renderStep2()}
@@ -306,7 +324,7 @@ const SmartPlan: React.FC = () => {
            </div>
 
            {/* Navigation Footer */}
-           <div className="mt-auto pt-6 border-t border-border flex justify-between items-center">
+           <div className="mt-8 pt-6 border-t border-border flex justify-between items-center">
               <div className="flex gap-1">
                 {[1,2,3].map(i => (
                   <div key={i} className={`h-1.5 w-6 rounded-full ${step >= i ? 'bg-primary' : 'bg-zinc-800'}`} />

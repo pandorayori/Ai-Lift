@@ -1,5 +1,5 @@
 
-import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog } from '../types';
+import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog, GeneratedPlan } from '../types';
 
 // --- Constants & Seed Data ---
 
@@ -7,7 +7,8 @@ import { Exercise, ExerciseType, MuscleGroup, UserProfile, WorkoutLog } from '..
 const BASE_KEYS = {
   PROFILE: 'ai_lift_profile',
   LOGS: 'ai_lift_logs',
-  EXERCISES: 'ai_lift_exercises'
+  EXERCISES: 'ai_lift_exercises',
+  ACTIVE_PLAN: 'ai_lift_active_plan'
 };
 
 const SEED_EXERCISES: Exercise[] = [
@@ -829,5 +830,13 @@ export const storage = {
       updatedLogs = [...current, log];
     }
     setLocal(key, updatedLogs);
+  },
+
+  saveActivePlan: (userId: string, plan: GeneratedPlan) => {
+    setLocal(getUserKey(BASE_KEYS.ACTIVE_PLAN, userId), plan);
+  },
+
+  getActivePlan: (userId: string): GeneratedPlan | null => {
+    return getLocal<GeneratedPlan | null>(getUserKey(BASE_KEYS.ACTIVE_PLAN, userId), null);
   }
 };

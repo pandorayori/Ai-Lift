@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { UserProfile, Language, WorkoutLog, Exercise } from '../types';
+import { UserProfile, Language, WorkoutLog, Exercise, GeneratedPlan } from '../types';
 import { storage } from '../services/storageService';
 import { translations } from '../utils/i18n';
 
@@ -12,6 +13,8 @@ interface AppContextType {
   logs: WorkoutLog[];
   exercises: Exercise[];
   refreshData: () => void;
+  activePlan: GeneratedPlan | null;
+  saveActivePlan: (plan: GeneratedPlan) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,16 +33,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [activePlan, setActivePlanState] = useState<GeneratedPlan | null>(null);
 
   // Load data from local storage (fast path)
   const refreshData = useCallback(() => {
     const p = storage.getProfile(userId);
     const l = storage.getWorkoutLogs(userId);
     const e = storage.getExercises();
+    const plan = storage.getActivePlan(userId);
     
     setProfileState(p);
     setLogs(l);
     setExercises(e);
+    setActivePlanState(plan);
   }, [userId]);
 
   // Initial load
@@ -51,6 +57,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newProfile = { ...profile, ...updated };
     setProfileState(newProfile);
     storage.saveProfile(userId, newProfile);
+  };
+
+  const saveActivePlan = (plan: GeneratedPlan) => {
+    setActivePlanState(plan);
+    storage.saveActivePlan(userId, plan);
   };
 
   const setLanguage = (lang: Language) => {
@@ -72,7 +83,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       t,
       logs,
       exercises,
-      refreshData
+      refreshData,
+      activePlan,
+      saveActivePlan
     }}>
       {children}
     </AppContext.Provider>
