@@ -56,7 +56,8 @@ const WorkoutLogger: React.FC = () => {
   const [sessionData, setSessionData] = useState<Record<number, { weight: string, reps: string, completed: boolean }[]>>({});
   
   // Timer Refs
-  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Fixed: Replaced NodeJS.Timeout with any to avoid namespace issues in browser environment.
+  const durationTimerRef = useRef<any>(null);
 
   // --- Derived Data ---
   const weekDates = useMemo(() => getDatesOfWeek(new Date()), []);

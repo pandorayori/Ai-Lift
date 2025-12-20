@@ -1,12 +1,12 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { generateCoachingAdvice } from '../services/geminiService';
-import { storage } from '../services/storageService';
+import { askAICoach } from '../services/planService'; // 切换到新的后端服务
 import { ChatMessage } from '../types';
 import { Send, Bot, Loader2 } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 
 const AICoach: React.FC = () => {
-  const { t, profile } = useAppContext();
+  const { t, profile, logs } = useAppContext();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,10 +36,10 @@ const AICoach: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    const logs = storage.getWorkoutLogs(profile.id);
-    const responseText = await generateCoachingAdvice(userMsg.text, logs, profile);
+    // 调用后端接口，不再直接使用前端 SDK
+    const reply = await askAICoach(userMsg.text, messages, profile);
     
-    setMessages(prev => [...prev, { role: 'model', text: responseText, timestamp: Date.now() }]);
+    setMessages(prev => [...prev, { role: 'model', text: reply, timestamp: Date.now() }]);
     setIsLoading(false);
   };
 

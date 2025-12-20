@@ -1,7 +1,7 @@
+
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const cwd = (process as any).cwd ? (process as any).cwd() : '.';
   const env = loadEnv(mode, cwd, '');
@@ -13,9 +13,18 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: true
     },
+    server: {
+      proxy: {
+        // 本地开发时，将 /api 请求转发到 3000 端口的 Node 服务
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+        }
+      }
+    },
     define: {
-      // Safely map env vars without overwriting the entire process object
-      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY || env.API_KEY || ''),
+      // 移除 process.env.API_KEY，安全性提升，前端不再持有 Key
     }
   };
 });
