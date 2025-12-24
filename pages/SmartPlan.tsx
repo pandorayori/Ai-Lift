@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { generateWorkoutPlan } from '../services/planService'; // 更改为新的 service
+import { aiService } from '../services/aiService';
 import { PlanGenerationParams, GeneratedPlan } from '../types';
 import { ArrowLeft, BrainCircuit, Check, Calendar, Clock, Dumbbell, PlayCircle, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -31,14 +31,15 @@ const SmartPlan: React.FC = () => {
   const handleGenerate = async () => {
     setIsLoading(true);
     try {
-      const plan = await generateWorkoutPlan(formData);
+      const plan = await aiService.generateWorkoutPlan(formData);
       if (plan) {
         setGeneratedPlan(plan);
       } else {
-        alert("无法生成计划，请检查网络或稍后再试。");
+        alert(t('smartPlan', 'error'));
       }
     } catch (err) {
       console.error(err);
+      alert(t('smartPlan', 'error'));
     } finally {
       setIsLoading(false);
     }
@@ -202,7 +203,7 @@ const SmartPlan: React.FC = () => {
 
         <div className="flex gap-3 flex-col sm:flex-row">
             <button onClick={handleAdoptPlan} className="flex-1 py-4 bg-primary text-background font-bold rounded-xl hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
-            <PlayCircle size={20} />使用此计划</button>
+            <PlayCircle size={20} />{profile.language === 'zh' ? '使用此计划' : 'Adopt Plan'}</button>
             <button onClick={() => { setGeneratedPlan(null); setStep(1); }} className="py-4 px-6 border border-zinc-700 text-zinc-400 hover:text-white rounded-xl font-medium transition-colors">{t('smartPlan', 'retry')}</button>
         </div>
       </div>
@@ -224,8 +225,10 @@ const SmartPlan: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <Loader2 className="text-primary animate-spin mb-4" size={48} />
-          <p className="text-white font-medium animate-pulse">正在利用 AI 构建您的专属训练方案...</p>
-          <p className="text-xs text-muted mt-2">这通常需要 5-10 秒</p>
+          <p className="text-white font-medium animate-pulse text-center px-4">
+            {profile.language === 'zh' ? '正在利用 AI 构建您的专属训练方案...' : 'Designing your personalized routine...'}
+          </p>
+          <p className="text-xs text-muted mt-2">This usually takes 5-10 seconds</p>
         </div>
       ) : generatedPlan ? (
         renderResult()
@@ -243,7 +246,9 @@ const SmartPlan: React.FC = () => {
               <div className="flex gap-3">
                 {step > 1 && <button onClick={() => setStep(step - 1)} className="px-4 py-2 text-sm text-zinc-400 hover:text-white font-medium">{t('smartPlan', 'backBtn')}</button>}
                 {step < STEPS ? (
-                   <button onClick={() => setStep(step + 1)} className="px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors">下一步</button>
+                   <button onClick={() => setStep(step + 1)} className="px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors">
+                     {profile.language === 'zh' ? '下一步' : 'Next'}
+                   </button>
                 ) : (
                    <button onClick={handleGenerate} className="px-6 py-2 bg-primary text-background font-bold rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2">
                      <BrainCircuit size={16} />{t('smartPlan', 'generate')}

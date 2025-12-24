@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { askAICoach } from '../services/planService'; // 切换到新的后端服务
+import { aiService } from '../services/aiService';
 import { ChatMessage } from '../types';
 import { Send, Bot, Loader2 } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
@@ -36,8 +36,8 @@ const AICoach: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    // 调用后端接口，不再直接使用前端 SDK
-    const reply = await askAICoach(userMsg.text, messages, profile);
+    // Call unified AI Service
+    const reply = await aiService.askCoach(userMsg.text, messages, profile);
     
     setMessages(prev => [...prev, { role: 'model', text: reply, timestamp: Date.now() }]);
     setIsLoading(false);
