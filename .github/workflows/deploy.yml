@@ -1,1 +1,67 @@
+name: Deploy to ECS
 
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ECS_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.ECS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy on ECS
+        run: |
+          ssh ${{ secrets.ECS_USER }}@${{ secrets.ECS_HOST }} << 'EOF'
+          set -e
+
+          # 1) 统一部署目录（你可以改成你想要的）
+          APP_DIR=/root/apps/Ai-Lift
+
+          # 2) 首次部署：没有就 clone
+          if [ ! -d "$APP_DIR/.git" ]; then
+            mkdir -p /root/apps
+            git clone https://github.com/pandorayori/Ai-Lift.git "$APP_DIR"
+          fi
+
+          cd "$APP_DIR"
+          git fetch --all
+          git reset --hard origin/main
+
+          # 3) 部署后端：apps/api
+          cd "$APP_DIR/apps/api"
+          npm ci
+
+          # 这里假设你的入口是 index.js，端口/环境变量你在服务器上 export 好
+          # 第一次没有进程就 start，有就 restart
+          if pm2 list | grep -q "ai-lift-api"; then
+            pm2 restart ai-lift-api --update-env
+          else
+            pm2 start index.js --name ai-lift-api
+          fi
+
+          # 4) 部署前端：apps/frontend
+          cd "$APP_DIR/apps/frontend"
+          npm ci
+          npm run build
+
+          # 如果你前端是用 nginx/静态站点，需要把 dist 放到对应目录（按你实际情况改）
+          # 例如：
+          # rm -rf /var/www/ai-lift/*
+          # cp -r dist/* /var/www/ai-lift/
+
+          pm2 save
+          echo "✅ Deploy finished"
+          EOF
